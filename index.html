@@ -636,97 +636,84 @@ function makeRestLoader(httpMany){
   };
 }
 
-/* Data source for the Google Apps Script web app: the server side (Code.gs) calls the Assured API, so there is no CORS limit. */
+/* Data source for the standalone page (GitHub Pages or any web host): calls the Assured REST API from the browser. */
 var SOURCE = (function(){
   "use strict";
+  var DEFAULT_BASE = "https://prod-backend.withassured.com";
   var $ = function(id){ return document.getElementById(id); };
-  function gs(fn){
-    var args = Array.prototype.slice.call(arguments, 1);
-    return new Promise(function(res, rej){
-      var r = google.script.run.withSuccessHandler(res).withFailureHandler(function(e){ rej(e && e.message ? e : new Error(String(e))); });
-      r[fn].apply(r, args);
-    });
-  }
+  function store(){ try { return localStorage.getItem("assuredRemember") === "1" ? localStorage : sessionStorage; } catch(e){ return null; } }
+  function get(k){ try { return (localStorage.getItem(k) || sessionStorage.getItem(k) || ""); } catch(e){ return ""; } }
+  function put(k, v){ try { var s = store(); if(s) s.setItem(k, v); } catch(e){} }
+  function drop(k){ try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch(e){} }
+  var state = {base: get("assuredBase") || DEFAULT_BASE, token: get("assuredToken")};
+
+  function base(){ return (state.base || DEFAULT_BASE).replace(/\/+$/, ""); }
   function connState(t, err){ var c = $("connState"); c.textContent = t; c.style.color = err ? "var(--err)" : ""; }
 
   function httpMany(paths){
-    return gs("apiGetAll", paths).catch(function(e){
-      if(/NO_TOKEN/.test(e.message)) throw {userMessage: "Add your platform access token in Connection settings first."};
-      throw {userMessage: "The Apps Script server could not reach the platform: " + e.message};
+    if(!state.token) return Promise.reject({userMessage: "Add your platform access token in Connection settings first."});
+    return Promise.all(paths.map(function(p){
+      if(!p) return null;
+      return fetch(base() + p, {headers: {"Authorization": "Bearer " + state.token, "Accept": "application/json"}}).then(function(r){
+        return r.text().then(function(t){ var j = null; try { j = t ? JSON.parse(t) : null; } catch(e){} return {status: r.status, json: j}; });
+      }, function(){ return {status: 0, json: null, network: true}; });
+    })).then(function(rs){
+      if(rs.length && rs.every(function(r){ return !r || r.network; }) && rs.some(Boolean)){
+        throw {userMessage: "The browser could not reach " + base() + ". This usually means the platform does not allow calls from this website (CORS). Use the Google Apps Script version, or ask engineering to allow this site's address."};
+      }
+      return rs;
     });
   }
 
-  function wire(){
-    $("rememberWrap").hidden = true;
-    $("connNote").textContent = "Your token is stored in your own Google account (Apps Script user properties), not in this page. Sign in with your platform email and password, or paste an access token. Treat the token like a password.";
-    gs("getSettings").then(function(s){
-      $("apiBase").value = s.base;
-      connState(s.hasToken ? "A token is saved for your Google account." : "No token saved yet.", !s.hasToken);
-      if(!s.hasToken) $("settings").open = true;
-    });
-    $("saveConn").addEventListener("click", function(){
-      var t = $("apiToken").value.trim().replace(/^Bearer\s+/i, "");
-      gs("saveSettings", {base: $("apiBase").value.trim(), token: t}).then(function(s){ $("apiToken").value = ""; connState(s.hasToken ? "Saved." : "Saved the address. Add a token or sign in.", !s.hasToken); }, function(e){ connState(e.message, true); });
-    });
-    $("signIn").addEventListener("click", function(){
-      var email = $("loginEmail").value.trim(), pass = $("loginPass").value;
-      if(!email || !pass){ connState("Enter your platform email and password.", true); return; }
-      connState("Signing in…");
-      gs("saveSettings", {base: $("apiBase").value.trim()}).then(function(){ return gs("signIn", email, pass); }).then(function(){ $("loginPass").value = ""; connState("Signed in. Your token is saved for your Google account."); }, function(e){ connState(e.message, true); });
-    });
-    $("forget").addEventListener("click", function(){ gs("forgetToken").then(function(){ connState("Token removed.", true); }); });
-  }
-
-  function toBase64(bytes){
-    var u = new Uint8Array(bytes), s = "", CH = 0x8000;
-    for(var i = 0; i < u.length; i += CH) s += String.fromCharCode.apply(null, u.subarray(i, i + CH));
-    return btoa(s);
-  }
-  function sheetRows(model, opts){
-    var main = [["Field", "Value", "Section", "Group", "Platform Key"]];
-    model.sections.forEach(function(s){ s.rows.forEach(function(r){
-      if(opts.hideEmpty && !r.value) return;
-      var v = r.value;
-      if(opts.omitSecrets && /^(provider\.ssn|taxentity\.account_number|taxentity\.routing_number)$/.test(r.key) && v) v = EX.mask(r.key, v);
-      main.push([r.field, v, s.name, r.sub, r.key]);
-    }); });
-    return [{name: "Application Data", rows: main}].concat(model.tables.map(function(t){ return {name: t.name.slice(0, 31), rows: [t.columns].concat(t.rows)}; }));
-  }
-
-  function save(filename, bytes){
-    /* Ask the server to keep a copy in Drive: downloads from inside Apps Script pages are not reliable in every browser. */
-    var copy = bytes.slice(0);
-    try {
-      var blob = new Blob([copy], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
-      var url = URL.createObjectURL(blob); var a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
-    } catch(e){}
-    return "Downloaded " + filename + ". If nothing downloaded, use Save to Drive.";
-  }
-
-  function extras(box, api){
-    var drive = document.createElement("button"); drive.type = "button"; drive.className = "quiet"; drive.textContent = "Save to Drive";
-    var sheet = document.createElement("button"); sheet.type = "button"; sheet.className = "quiet"; sheet.textContent = "Open as Google Sheet";
-    drive.addEventListener("click", function(){
-      var m = api.model(); if(!m) return;
-      drive.disabled = true; api.setMsg("Saving to your Google Drive…");
-      var b64; try { b64 = toBase64(EX.workbook(m, api.opts())); } catch(e){ api.setMsg(e.message, true); drive.disabled = false; return; }
-      gs("saveXlsxToDrive", m.filename, b64).then(function(u){ api.setMsg("Saved to Drive: " + u); window.open(u, "_blank"); }, function(e){ api.setMsg("Could not save to Drive: " + e.message, true); }).then(function(){ drive.disabled = false; });
-    });
-    sheet.addEventListener("click", function(){
-      var m = api.model(); if(!m) return;
-      sheet.disabled = true; api.setMsg("Creating a Google Sheet…");
-      gs("writeToSheet", m.filename.replace(/\.xlsx$/, ""), sheetRows(m, api.opts())).then(function(u){ api.setMsg("Created: " + u); window.open(u, "_blank"); }, function(e){ api.setMsg("Could not create the sheet: " + e.message, true); }).then(function(){ sheet.disabled = false; });
-    });
-    box.append(drive, sheet);
+  function signIn(){
+    var email = $("loginEmail").value.trim(), pass = $("loginPass").value;
+    if(!email || !pass){ connState("Enter your platform email and password.", true); return; }
+    connState("Signing in…");
+    fetch(base() + "/api/v1/users/login/", {method: "POST", headers: {"Content-Type": "application/json", "Accept": "application/json"}, body: JSON.stringify({email: email, password: pass})})
+      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ return {ok: r.ok, status: r.status, j: j}; }); })
+      .then(function(res){
+        var jwt = res.j && res.j.data && res.j.data.jwt;
+        var tok = typeof jwt === "string" ? jwt : (jwt && (jwt.access || jwt.token || jwt.access_token));
+        if(!res.ok || !tok){ connState("Sign-in failed" + (res.status ? " (" + res.status + ")" : "") + ". Check your email and password, or paste a token instead.", true); return; }
+        state.token = tok; put("assuredToken", tok); $("loginPass").value = ""; $("apiToken").value = "";
+        connState("Signed in. Your token is saved " + (store() === localStorage ? "on this device." : "for this browser tab."));
+      }, function(){ connState("Could not reach the platform from this website (likely CORS). Use the Google Apps Script version.", true); });
   }
 
   var wired = false;
-  function once(){ if(!wired){ wired = true; wire(); } }
-  document.addEventListener("DOMContentLoaded", once);
-  if(document.readyState !== "loading") setTimeout(once, 0);
+  function wire(){
+    if(wired) return; wired = true;
+    $("apiBase").value = state.base;
+    try { $("remember").checked = localStorage.getItem("assuredRemember") === "1"; } catch(e){}
+    connState(state.token ? "A token is saved." : "No token saved yet.", !state.token);
+    if(!state.token) $("settings").open = true;
+    $("saveConn").addEventListener("click", function(){
+      state.base = $("apiBase").value.trim() || DEFAULT_BASE; put("assuredBase", state.base);
+      var t = $("apiToken").value.trim().replace(/^Bearer\s+/i, "");
+      if(t){ state.token = t; put("assuredToken", t); $("apiToken").value = ""; }
+      connState(state.token ? "Saved." : "Saved the address. Add a token or sign in.", !state.token);
+    });
+    $("signIn").addEventListener("click", function(){ state.base = $("apiBase").value.trim() || DEFAULT_BASE; put("assuredBase", state.base); signIn(); });
+    $("remember").addEventListener("change", function(e){
+      try { if(e.target.checked){ localStorage.setItem("assuredRemember", "1"); } else { localStorage.removeItem("assuredRemember"); } } catch(x){}
+      if(state.token){ drop("assuredToken"); put("assuredToken", state.token); }
+      put("assuredBase", state.base);
+    });
+    $("forget").addEventListener("click", function(){ state.token = ""; drop("assuredToken"); connState("Token removed.", true); });
+  }
 
-  return {label: "Assured API (Apps Script)", load: makeRestLoader(httpMany), save: save, extras: extras,
+  function save(filename, bytes){
+    var blob = new Blob([bytes], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    return "Downloaded " + filename + ".";
+  }
+
+  document.addEventListener("DOMContentLoaded", wire);
+  if(document.readyState !== "loading") setTimeout(wire, 0);
+
+  return {label: "Assured API", load: makeRestLoader(httpMany), save: save,
     emptyHint: "Paste a link like https://platform.withassured.com/superadmin/enrollments/<id>/overview, or just the enrollment ID. Set up your access once under Connection settings."};
 })();
 
