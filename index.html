@@ -1,150 +1,348 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Enrollment Overview Export</title>
+<title>Enrollment Export</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
-/* Layout: sticky lookup bar, identity summary with copyable IDs, a toolbar of section chips and toggles, then section cards in two columns and full-width tables for repeating records */
+/* Layout: a sticky bar with the lookup, an identity card with IDs and checks, one toolbar for search, copy and export, then field cards in two columns with full-width tables; bulk results sit above the cards */
 :root{
-  --bg:#f2f5f6; --surface:#ffffff; --surface-2:#e8eff0; --fg:#0f2328; --muted:#53686e; --line:#d5dfe2;
-  --accent:#0b6e66; --accent-fg:#ffffff; --accent-soft:#d6efea;
-  --warn-bg:#fff0d4; --warn-fg:#774700; --ok-bg:#dcf2e3; --ok-fg:#14532d; --bad-bg:#fbe1de; --bad-fg:#8f1d12; --err:#a3261b;
-  --shadow:0 1px 2px rgba(16,36,41,.06);
+  --bg:#eef3f3; --surface:#ffffff; --surface-2:#e6eeee; --surface-3:#f6f9f9; --fg:#0f2428; --muted:#55696f; --line:#d3dfe0;
+  --accent:#0a6b63; --accent-2:#0e8a7f; --accent-fg:#ffffff; --accent-soft:#d4eee9;
+  --warn-bg:#fff0d2; --warn-fg:#744600; --ok-bg:#daf1e2; --ok-fg:#135c30; --bad-bg:#fbe0dc; --bad-fg:#8e1c11; --err:#a3261b;
+  --shadow:0 1px 2px rgba(15,36,40,.05),0 6px 18px -12px rgba(15,36,40,.18);
   --font-display:'Source Sans 3',Calibri,'Segoe UI',system-ui,sans-serif;
   --font-body:'Source Sans 3',Calibri,'Segoe UI',system-ui,sans-serif;
-  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --r:12px;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0b1618;--surface:#122125;--surface-2:#192d32;--fg:#e4eef0;--muted:#91a7ad;--line:#24383d;--accent:#4cc3b6;--accent-fg:#05201d;--accent-soft:#163f3a;--warn-bg:#3a2c0e;--warn-fg:#f2c86f;--ok-bg:#12341f;--ok-fg:#8fe0a8;--bad-bg:#3d1713;--bad-fg:#ff9f93;--err:#ff8a7d;--shadow:none;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#0b1618;--surface:#122125;--surface-2:#192d32;--fg:#e4eef0;--muted:#91a7ad;--line:#24383d;--accent:#4cc3b6;--accent-fg:#05201d;--accent-soft:#163f3a;--warn-bg:#3a2c0e;--warn-fg:#f2c86f;--ok-bg:#12341f;--ok-fg:#8fe0a8;--bad-bg:#3d1713;--bad-fg:#ff9f93;--err:#ff8a7d;--shadow:none;color-scheme:dark}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0a1517;--surface:#11201f;--surface-2:#182c2c;--surface-3:#0e1b1c;--fg:#e3eeee;--muted:#93a9ac;--line:#243a3b;--accent:#4cc3b5;--accent-2:#6fd6c9;--accent-fg:#04201c;--accent-soft:#143f3a;--warn-bg:#3a2c0e;--warn-fg:#f2c86f;--ok-bg:#12341f;--ok-fg:#8fe0a8;--bad-bg:#3d1713;--bad-fg:#ff9f93;--err:#ff8a7d;--shadow:none;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0a1517;--surface:#11201f;--surface-2:#182c2c;--surface-3:#0e1b1c;--fg:#e3eeee;--muted:#93a9ac;--line:#243a3b;--accent:#4cc3b5;--accent-2:#6fd6c9;--accent-fg:#04201c;--accent-soft:#143f3a;--warn-bg:#3a2c0e;--warn-fg:#f2c86f;--ok-bg:#12341f;--ok-fg:#8fe0a8;--bad-bg:#3d1713;--bad-fg:#ff9f93;--err:#ff8a7d;--shadow:none;color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--fg);font:16px/1.5 var(--font-body);margin:0}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
-.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
-.bar .wrap{padding-block:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.bar form{flex:1 1 360px;min-width:0;display:flex;gap:8px}
-.search{position:relative;flex:1;min-width:0}
-.search svg{position:absolute;left:12px;top:50%;translate:0 -50%;width:16px;height:16px;color:var(--muted);pointer-events:none}
-input[type=text],input[type=search],input[type=password],input[type=email],input[type=url]{width:100%;font:14px var(--font-mono);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:11px 12px}
-.search input{padding-left:36px}
-input:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
-button{font:600 15px var(--font-body);border:0;border-radius:8px;padding:10px 16px;cursor:pointer;background:var(--accent);color:var(--accent-fg);white-space:nowrap}
-button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
-button.quiet{background:transparent;color:var(--muted);border:1px solid var(--line)}
-button:hover:not(:disabled){filter:brightness(1.07)}
-button:focus-visible,a:focus-visible,.chip:focus-visible,summary:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
-button:disabled{opacity:.55;cursor:default}
-main.wrap{padding-block:20px 48px;display:flex;flex-direction:column;gap:18px}
-.hero{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:16px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.mono{font-family:var(--font-mono);font-size:.92em}
+
+/* header */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar-in{padding-block:10px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.brand{display:flex;align-items:center;gap:8px;font:700 17px var(--font-display);color:var(--accent);white-space:nowrap}
+.brand svg{width:26px;height:26px}
+.bar form{flex:1 1 380px;min-width:0;display:flex;gap:8px}
+.search,.multi{position:relative;flex:1;min-width:0}
+.search svg,.multi svg{position:absolute;left:12px;top:50%;translate:0 -50%;width:16px;height:16px;color:var(--muted);pointer-events:none}
+input[type=text],input[type=search],input[type=password],input[type=email],input[type=url],textarea,select{width:100%;font:14px var(--font-body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+input[type=text]#link,#filter{font-family:var(--font-mono);font-size:13.5px}
+textarea{font-family:var(--font-mono);font-size:13px;resize:vertical;min-height:90px}
+select{padding:8px 10px;font-size:13.5px;max-width:100%}
+.search input,.multi input{padding-left:36px}
+input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--accent-soft);border-color:var(--accent);outline-offset:0}
+button,.button{display:inline-flex;align-items:center;gap:6px;font:600 14.5px var(--font-body);border:1px solid transparent;border-radius:8px;padding:9px 15px;cursor:pointer;background:var(--accent);color:var(--accent-fg);white-space:nowrap;text-decoration:none;line-height:1.3}
+button.ghost,.button.ghost{background:transparent;color:var(--accent);border-color:var(--accent)}
+button.quiet,.button.quiet{background:var(--surface);color:var(--fg);border-color:var(--line)}
+button.quiet:hover:not(:disabled),.button.quiet:hover{border-color:var(--accent);color:var(--accent)}
+button:hover:not(:disabled),.button:hover{filter:brightness(1.06)}
+button:focus-visible,a:focus-visible,.chip:focus-visible,summary:focus-visible,.button:focus-within{outline:3px solid var(--fg);outline-offset:2px}
+button:disabled{opacity:.5;cursor:default}
+.button input[type=file],.drop input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.button{position:relative}
+
+main.wrap{padding-block:18px 56px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);min-width:0}
+.card.pad{padding:16px 18px}
+.card h2,.out-head h2{font:700 18px var(--font-display);margin:0 0 6px}
+.note{font-size:13.5px;color:var(--muted);margin:0 0 10px;max-width:80ch}
+.note.error,#msg.error,.error{color:var(--err)}
+.ok-text{color:var(--ok-fg)}
+#msg{min-height:1.3em;color:var(--muted);font-size:14px;margin:-4px 0 0}
+#msg a{color:var(--accent);font-weight:600}
+
+/* hero */
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:16px}
 .hero-top{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:flex-start;justify-content:space-between}
-.eyebrow{font:500 12px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);overflow-wrap:anywhere}
-h1{font:700 32px/1.15 var(--font-display);margin:4px 0 4px;text-wrap:balance;overflow-wrap:anywhere}
-.sub{color:var(--muted);margin:0;max-width:72ch}
-.pill{padding:4px 12px;border-radius:999px;background:var(--warn-bg);color:var(--warn-fg);font:500 12px var(--font-mono);letter-spacing:.04em;white-space:nowrap;text-transform:uppercase}
+.eyebrow{font:500 11.5px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);overflow-wrap:anywhere}
+h1{font:700 30px/1.15 var(--font-display);margin:4px 0;text-wrap:balance;overflow-wrap:anywhere}
+.sub{color:var(--muted);margin:0;max-width:78ch}
+.pill{padding:4px 12px;border-radius:999px;background:var(--warn-bg);color:var(--warn-fg);font:500 12px var(--font-mono);letter-spacing:.04em;white-space:nowrap}
 .pill.ok{background:var(--ok-bg);color:var(--ok-fg)}.pill.bad{background:var(--bad-bg);color:var(--bad-fg)}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px}
-.kpi{background:var(--surface-2);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
-.kpi-l{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px}
+.kpi{background:var(--surface-3);border:1px solid var(--line);border-radius:10px;padding:9px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi-l{font:500 10.5px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .kpi-v{display:flex;align-items:center;justify-content:space-between;gap:8px;font:500 15px var(--font-mono);min-width:0;font-variant-numeric:tabular-nums}
 .kpi-v span{overflow-wrap:anywhere}
-.tools{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-.tools-row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
-.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;min-width:0}
-.chip{flex:none;font:500 13px var(--font-body);color:var(--fg);background:var(--surface-2);border:1px solid transparent;border-radius:999px;padding:5px 12px;text-decoration:none}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.check{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:5px 11px;border-radius:999px;background:var(--surface-2)}
+.check .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.check.warn{background:var(--warn-bg);color:var(--warn-fg)}.check.warn .dot{background:var(--warn-fg)}
+.check.bad{background:var(--bad-bg);color:var(--bad-fg)}.check.bad .dot{background:var(--bad-fg)}
+.check.ok{background:var(--ok-bg);color:var(--ok-fg)}.check.ok .dot{background:var(--ok-fg)}
+.intro{display:flex;flex-direction:column;gap:6px}
+.feature-list{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:10px}
+.feature-list li{background:var(--surface-3);border:1px solid var(--line);border-radius:10px;padding:11px 13px;display:flex;flex-direction:column;gap:2px;font-size:14px;color:var(--muted)}
+.feature-list strong{color:var(--fg);font-size:15px}
+.recent{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.recent .eyebrow{width:100%}
+.recent-item{flex-direction:column;align-items:flex-start;gap:0;background:var(--surface-3);color:var(--fg);border:1px solid var(--line);padding:7px 12px;max-width:100%}
+.recent-item:hover{border-color:var(--accent)}
+.r-name{font-weight:600;font-size:14px}.r-sub{font-weight:400;font-size:12px;color:var(--muted)}
+
+/* tabs */
+.tabs{display:flex;gap:4px;padding:4px;background:var(--surface-2);border-radius:11px;align-self:flex-start;max-width:100%;overflow-x:auto}
+.tabs [role=tab]{background:transparent;color:var(--muted);border:0;padding:8px 16px;border-radius:8px;font-weight:600}
+.tabs [role=tab][aria-selected=true]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.tag{font:600 10px var(--font-mono);letter-spacing:.06em;background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:5px}
+.panel{display:flex;flex-direction:column;gap:16px}
+.panel[hidden]{display:none!important}
+
+/* tools */
+.tools{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow)}
+.tools-row,.row-actions,.actions{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.extras{display:contents}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;min-width:0}
+.chip{flex:none;font:500 13px var(--font-body);color:var(--fg);background:var(--surface-2);border:1px solid transparent;border-radius:999px;padding:4px 12px;text-decoration:none}
 .chip:hover{border-color:var(--accent);color:var(--accent)}
-.toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);cursor:pointer;user-select:none}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);cursor:pointer;user-select:none}
 .toggle input{width:16px;height:16px;accent-color:var(--accent);margin:0}
-.filter{flex:1 1 220px;min-width:0;max-width:320px}
 .spacer{flex:1}
-#msg{min-height:1.4em;color:var(--muted);font-size:14px;margin:0}
-#msg.error{color:var(--err)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,480px),1fr));gap:16px;align-items:start}
-section.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 18px 12px;box-shadow:var(--shadow);min-width:0;scroll-margin-top:96px}
-section.wide{grid-column:1/-1}
-h2{font:700 19px var(--font-display);margin:14px 0 4px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+
+/* field cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,500px),1fr));gap:16px;align-items:start}
+.grid > section.card{padding:6px 18px 12px;scroll-margin-top:90px}
+section.wide,.card.wide{grid-column:1/-1}
+.grid h2{font:700 18px var(--font-display);margin:14px 0 4px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 h2 small{font:500 11px var(--font-mono);color:var(--muted);letter-spacing:.06em;white-space:nowrap}
-h3{font:600 12px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:16px 0 2px}
-.row{display:grid;grid-template-columns:minmax(120px,190px) 1fr auto;gap:0 12px;padding:7px 0;border-top:1px solid var(--line);align-items:start;min-width:0}
-h3 + .row,h2 + .row{border-top:0}
+h3{font:600 11.5px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:16px 0 2px}
+dl{margin:0}
+.row{display:grid;grid-template-columns:minmax(130px,200px) 1fr auto;gap:0 12px;padding:7px 0;border-top:1px solid var(--line);align-items:start;min-width:0}
+h3 + .row,h2 + dl > .row:first-child{border-top:0}
 .row dt{color:var(--muted);font-size:14px;padding-top:1px}
 .row dd{margin:0;min-width:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
 .row dd.empty{color:var(--muted)}
-.row dd.masked{letter-spacing:.08em}
+.row dd.masked{letter-spacing:.06em}
 .copy{background:transparent;color:var(--muted);padding:2px 8px;font:500 12px var(--font-body);border:1px solid transparent;border-radius:6px;opacity:0}
-.row:hover .copy,.row:focus-within .copy,.copy:focus-visible,.kpi .copy{opacity:1}
+.row:hover .copy,.row:focus-within .copy,.copy:focus-visible,.kpi .copy,td .copy{opacity:1}
 .copy:hover:not(:disabled){color:var(--accent);border-color:var(--line);filter:none}
 @media (hover:none){.copy{opacity:1}}
-mark{background:var(--accent-soft);color:inherit;border-radius:3px}
-.tbl{overflow-x:auto;margin:6px 0 4px;border:1px solid var(--line);border-radius:8px}
+mark{background:var(--accent-soft);color:inherit;border-radius:3px;padding:0 1px}
+
+/* tables */
+.tbl{overflow-x:auto;margin:6px 0 4px;border:1px solid var(--line);border-radius:10px}
 table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
-th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
-th{font:600 12px var(--font-body);color:var(--muted);background:var(--surface-2);position:sticky;top:0}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.grid td,#rosterTable td{white-space:nowrap}
+th{font:600 12px var(--font-body);color:var(--muted);background:var(--surface-3);position:sticky;top:0;white-space:nowrap}
 tr:last-child td{border-bottom:0}
-.none{padding:24px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:12px}
+td.num{color:var(--muted);font-family:var(--font-mono);font-size:12px;width:1%}
+td.val{font-variant-numeric:tabular-nums;overflow-wrap:anywhere;min-width:140px}
+td.val.empty{color:var(--muted)}
+td.sel{min-width:240px}
+td.lbl{min-width:180px}
+tr.unmatched td{background:var(--surface-3)}
+tr.unmatched td.val{color:var(--muted)}
+tr.head-row td{background:var(--surface-2);font:600 11.5px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.f-name{display:block}.f-where{display:block;font-size:12px;color:var(--muted)}
+.how{display:inline-block;margin-top:4px;font-size:11.5px;padding:1px 7px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.how-claude,.how-exact,.how-you{background:var(--ok-bg);color:var(--ok-fg)}
+.how-name{background:var(--warn-bg);color:var(--warn-fg)}
+#colsTable input{min-width:160px;padding:7px 10px}
+.picks{padding:14px 18px}
+.picks-table td.term{font-weight:600;white-space:nowrap}
+.picks-table tr.more td{border-top:0}
+.picks-table tr.miss td{color:var(--muted)}
+.out-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin-bottom:6px}
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:stretch}
+.split .card{display:flex;flex-direction:column;gap:8px}
+.split .row-actions{margin-top:auto;padding-top:6px}
+.drop{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;border:2px dashed var(--line);border-radius:12px;padding:26px 16px;cursor:pointer;background:var(--surface-3);color:var(--muted);font-size:13.5px;transition:border-color .15s,background .15s}
+.drop svg{width:30px;height:30px;color:var(--accent)}
+.drop strong{color:var(--fg);font-size:15px}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.sticky-actions{position:sticky;bottom:0;z-index:4;background:var(--bg);padding:10px 0;border-top:1px solid var(--line)}
+
+/* settings */
+.settings{padding:0 18px}
+.settings > summary{cursor:pointer;font-weight:700;padding:13px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none}
+.settings > summary::-webkit-details-marker{display:none}
+.settings-body{display:flex;flex-direction:column;gap:12px;padding-bottom:16px}
+.settings h3{margin:0 0 6px}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
+.button.bm{padding:5px 12px;font-size:13.5px;cursor:grab}
+.badge{font:600 11.5px var(--font-mono);padding:3px 10px;border-radius:999px;letter-spacing:.04em}
+.badge.ok{background:var(--ok-bg);color:var(--ok-fg)}.badge.warn{background:var(--warn-bg);color:var(--warn-fg)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px}
+.fields label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+details.mini > summary{cursor:pointer;font-size:14px;color:var(--accent);font-weight:600;padding:2px 0}
+details.mini[open]{display:flex;flex-direction:column;gap:8px}
+
+.none{padding:24px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:var(--r)}
 .skel{height:14px;border-radius:6px;background:linear-gradient(90deg,var(--surface-2),var(--line),var(--surface-2));background-size:200% 100%;animation:sh 1.2s linear infinite}
 @keyframes sh{to{background-position:-200% 0}}
-@media (prefers-reduced-motion:reduce){.skel{animation:none}}
-.steps{margin:0;padding-left:20px;color:var(--muted);display:flex;flex-direction:column;gap:4px;max-width:72ch}
-.settings{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px 16px}
-.settings summary{cursor:pointer;font-weight:600;padding:10px 0}
-.settings .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;padding:4px 0 14px}
-.settings label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
-.settings .actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding-bottom:14px}
-.note{font-size:13px;color:var(--muted);margin:0 0 12px;max-width:80ch}
-@media(max-width:560px){
-  h1{font-size:25px}
+@media (prefers-reduced-motion:reduce){.skel{animation:none}.drop{transition:none}}
+@media(max-width:600px){
+  h1{font-size:24px}
   .row{grid-template-columns:1fr auto}
   .row dt{grid-column:1/-1;padding-bottom:0}
   .bar form{flex-basis:100%}
-  .filter{max-width:none}
+  .bar{position:static}
+  .brand{flex:1}
+  .tabs{align-self:stretch}
+  .tabs [role=tab]{flex:1;padding:8px 10px}
 }
+
+/* single page */
+.app{display:flex;flex-direction:column;gap:16px}
+.filter{flex:1 1 300px;min-width:0;max-width:440px}
+.account{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted);white-space:nowrap}
+.account .who{max-width:200px;overflow:hidden;text-overflow:ellipsis}
+button.link{background:none;border:0;padding:2px 0;color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.recent{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#bulkTable tr.click{cursor:pointer}
+#bulkTable tr.click:hover td{background:var(--accent-soft)}
+#bulkTable tr.current td{background:var(--accent-soft);font-weight:600}
+#bulkTable tr.pending td{color:var(--muted)}
+#bulkTable td{white-space:nowrap}
+.picks-table td.term{width:1%}
+.form-drawer{padding:0 18px}
+.form-drawer > summary{cursor:pointer;padding:14px 0;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;list-style:none;font-weight:700;font-size:17px}
+.form-drawer > summary::-webkit-details-marker{display:none}
+.form-drawer > summary .note{font-weight:400;margin:0}
+.drawer-body{display:flex;flex-direction:column;gap:12px;padding-bottom:18px}
+.typed{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.typed textarea{min-height:120px}
+/* sign in */
+.login{display:flex;justify-content:center;padding-block:6vh 10vh}
+.login-card{width:min(100%,420px);background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:28px 26px;display:flex;flex-direction:column;gap:14px}
+.login-card h1{margin:6px 0 0;font-size:26px}
+.login-card label:not(.toggle){display:flex;flex-direction:column;gap:5px;font-size:13.5px;color:var(--muted);font-weight:600}
+.login-card input[type=email],.login-card input[type=password],.login-card input[type=text]{font-size:15px;padding:11px 12px}
+.login-card button[type=submit]{justify-content:center;padding:11px 16px;font-size:15.5px}
+.brand.big{font-size:18px}
+.login-form{display:flex;flex-direction:column;gap:14px}
+.help-box{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:14px}
+.help-box h2{font:700 17px var(--font-display);margin:0}
+.option{display:flex;flex-direction:column;gap:8px;align-items:flex-start;background:var(--surface-3);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.option .note{margin:0}
+.option input{width:100%}
+.option .steps{font-size:14px}
+button.link.small{font-size:13.5px;align-self:center;font-weight:500}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Source+Sans+3:wght@400;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head><body>
-<div class="bar"><div class="wrap">
+<div class="bar"><div class="wrap bar-in">
+  <div class="brand"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="currentColor" opacity=".16"/><path d="M8 8.5h8M8 12h8M8 15.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Enrollment Export</span></div>
   <form id="lookup" autocomplete="off">
     <div class="search">
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13.5 13.5 4 4" stroke-linecap="round"/></svg>
-      <input type="text" id="link" aria-label="Enrollment link or ID" placeholder="Paste an enrollment link or ID" spellcheck="false">
+      <input type="text" id="link" aria-label="Enrollment links or IDs" placeholder="Paste an enrollment link or ID (or several for bulk)" spellcheck="false">
     </div>
     <button type="submit" id="load">Show details</button>
   </form>
   <button id="dl" type="button" class="ghost" disabled>Download Excel</button>
+  <span id="account" class="account" hidden></span>
 </div></div>
 <main class="wrap">
-<details class="settings" id="settings">
-  <summary>Connection settings</summary>
-  <p class="note" id="connNote">This page calls the Assured platform API with your own access. Sign in with your platform email and password, or paste an access token. Treat the token like a password: it gives the same access as your login.</p>
-  <div class="fields">
-    <label for="apiBase">API address<input type="url" id="apiBase" spellcheck="false"></label>
-    <label for="apiToken">Access token<input type="password" id="apiToken" placeholder="Paste a platform access token" autocomplete="off" spellcheck="false"></label>
-    <label for="loginEmail">Platform email<input type="email" id="loginEmail" autocomplete="username"></label>
-    <label for="loginPass">Password<input type="password" id="loginPass" autocomplete="current-password"></label>
-  </div>
-  <div class="actions">
-    <button type="button" id="saveConn">Save token</button>
-    <button type="button" id="signIn" class="ghost">Sign in with email</button>
-    <label class="toggle" id="rememberWrap"><input type="checkbox" id="remember"> Remember on this device</label>
-    <button type="button" id="forget" class="quiet">Forget token</button>
-    <span id="connState" class="note" role="status"></span>
-  </div>
-</details>
+<section class="login" id="login" hidden>
+  <div class="login-card">
+    <div class="brand big"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="currentColor" opacity=".16"/><path d="M8 8.5h8M8 12h8M8 15.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Enrollment Export</span></div>
+    <form id="loginForm" class="login-form" autocomplete="on">
+      <h1>Sign in</h1>
+      <p class="sub">Use your Assured platform email and password. You only need to do this once on this device.</p>
+      <label for="loginEmail">Email<input type="email" id="loginEmail" autocomplete="username" required></label>
+      <label for="loginPass">Password<input type="password" id="loginPass" autocomplete="current-password" required></label>
+      <label for="loginCode" id="codeWrap" hidden>Verification code<input type="text" id="loginCode" inputmode="numeric" autocomplete="one-time-code"></label>
+      <label class="toggle"><input type="checkbox" id="keep" checked> Keep me signed in</label>
+      <button type="submit" id="loginBtn">Sign in</button>
+      <p id="loginMsg" class="note" role="status"></p>
+    </form>
 
-  <div class="hero" id="hero"></div>
-  <div class="tools" id="tools" hidden>
-    <div class="tools-row">
-      <input type="search" id="filter" class="filter" placeholder="Filter fields" aria-label="Filter fields" autocomplete="off">
-      <label class="toggle"><input type="checkbox" id="showSens"> Show sensitive values</label>
-      <label class="toggle"><input type="checkbox" id="hideEmpty"> Hide empty fields</label>
-      <label class="toggle"><input type="checkbox" id="omitSecrets"> Mask SSN and bank numbers in Excel</label>
-      <span class="spacer"></span>
-      <button type="button" id="copyAll" class="quiet">Copy all fields</button>
-      <span id="extras" style="display:contents"></span>
+    <div id="noPass" class="help-box" hidden>
+      <h2>No password on this account?</h2>
+      <p class="note">Some people sign in to the platform without a password. Pick one of these, once:</p>
+      <div class="option">
+        <strong>Set a password</strong>
+        <span class="note">The platform emails you a link to set one. Then sign in here with it.</span>
+        <button type="button" id="sendReset" class="quiet">Email me a set-password link</button>
+      </div>
+      <div class="option">
+        <strong>Use the platform session you already have</strong>
+        <ol class="steps">
+          <li>Drag this button to your bookmarks bar: <a id="bmLink" class="button bm" href="#">Assured sign-in</a></li>
+          <li>Open the platform where you are already signed in and click that bookmark.</li>
+          <li>Come back here and click Continue.</li>
+        </ol>
+        <label for="sessionPaste" class="sr">Copied sign-in</label>
+        <input type="password" id="sessionPaste" placeholder="Paste here if it does not fill in by itself" autocomplete="off" spellcheck="false">
+        <button type="button" id="useSession">Continue</button>
+      </div>
+      <p id="helpMsg" class="note" role="status"></p>
     </div>
-    <nav class="chips" id="chips" aria-label="Sections"></nav>
+    <button type="button" id="showHelp" class="link small">Signed in to the platform without a password?</button>
   </div>
-  <p id="msg" role="status" aria-live="polite"></p>
-  <div class="grid" id="sections"></div>
+</section>
+
+  <div id="app" class="app">
+    <div class="hero" id="hero"></div>
+    <div class="tools" id="tools" hidden>
+      <div class="tools-row">
+        <input type="search" id="filter" class="filter" placeholder="Search fields. Several at once: npi, dob, tax id, license" aria-label="Search fields" autocomplete="off" spellcheck="false">
+        <label class="toggle"><input type="checkbox" id="optSens"> Show sensitive values</label>
+        <label class="toggle"><input type="checkbox" id="optEmpty"> Hide empty fields</label>
+        <label class="toggle"><input type="checkbox" id="optFormat"> Form-friendly format</label>
+        <span class="spacer"></span>
+        <button type="button" id="copyAll" class="quiet">Copy all</button>
+        <button type="button" id="openForm" class="quiet">Fill a form</button>
+        <span id="extras" class="extras"></span>
+      </div>
+      <nav class="chips" id="chips" aria-label="Sections"></nav>
+    </div>
+    <p id="msg" role="status" aria-live="polite"></p>
+    <section class="card pad" id="bulk" hidden>
+      <div class="out-head">
+        <h2 id="bulkTitle">Bulk data</h2>
+        <div class="row-actions">
+          <button type="button" id="bulkCopy" class="quiet">Copy rows</button>
+          <button type="button" id="bulkDl">Download bulk Excel</button>
+          <span id="bulkExtras" class="extras"></span>
+        </div>
+      </div>
+      <p class="note" id="bulkNote">Type field names in the search box (for example: npi, tax id, license) to choose the columns. Click a row to open that enrollment.</p>
+      <div class="tbl"><table id="bulkTable"></table></div>
+    </section>
+    <div id="picks" class="card pad picks" hidden></div>
+    <div class="grid" id="sections"></div>
+    <details class="card form-drawer" id="formDrawer">
+      <summary><span>Fill a form <span class="tag">OCR</span></span><span class="note">Read a payer form and line its fields up with this enrollment's data</span></summary>
+      <div class="drawer-body">
+        <div class="split">
+          <label class="drop" id="drop" for="formFile">
+            <input type="file" id="formFile" accept=".pdf,application/pdf,image/*" multiple>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 15V4m0 0-4 4m4-4 4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <strong>Drop a PDF or image, or paste a screenshot</strong>
+            <span>Fillable PDFs are read field by field. Scans and images use <span id="ocrName">OCR</span>.</span>
+          </label>
+          <div class="typed">
+            <textarea id="labelsIn" rows="6" placeholder="Or type labels, one per line&#10;Group NPI&#10;Tax ID&#10;Billing address:&#10;City&#10;Zip"></textarea>
+            <button type="button" id="matchLabels" class="quiet">Match labels</button>
+          </div>
+        </div>
+        <p id="ocrState" class="note" role="status"></p>
+        <div id="formOut" hidden>
+          <div class="out-head">
+            <h2 id="formTitle">Form fields</h2>
+            <div class="row-actions">
+              <label class="toggle"><input type="checkbox" id="hideUnmatched"> Hide unmatched</label>
+              <button type="button" id="copyForm" class="quiet">Copy values</button>
+              <button type="button" id="dlForm" class="ghost">Download form fill Excel</button>
+              <span id="formExtras" class="extras"></span>
+            </div>
+          </div>
+          <div class="tbl"><table id="formTable"><thead><tr><th>#</th><th>Form label</th><th>Platform field</th><th>Value</th><th><span class="sr">Copy</span></th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+    </details>
+  </div>
 </main>
 <script>
 /* Platform field catalog — the Assured "PDF template attributes" (display name + uri).
@@ -191,79 +389,65 @@ var EX_CATALOG = [
   ]]
 ];
 
-/* Enrollment export core: turns raw platform records into labelled sections, tables and an .xlsx workbook.
-   Shared by the Claude artifact, the standalone HTML page and the Google Apps Script web app. */
+/* Enrollment export core: turns raw platform records into labelled fields, tables, checks and .xlsx workbooks.
+   Shared by the Claude artifact, the standalone HTML page and the Google Apps Script web app.
+   Values are kept exactly as the platform stores them. Form-friendly formatting is an opt-in view. */
 var EX = (function(){
   "use strict";
 
   var SKIP = {"provider.profile_completeness_json":1,"provider.credentialing_readiness_info":1,"provider.recredentialing_notification_dismissed":1,"taxentity.document_links":1,"taxentity.bank_account_information":1};
   var SENSITIVE = {"provider.ssn":1,"provider.birth_date":1,"taxentity.account_number":1,"taxentity.routing_number":1,"taxentity.tax_id":1};
-  var EXCEL_SECRET = {"provider.ssn":1,"taxentity.account_number":1,"taxentity.routing_number":1};
+  var SECRET = {"provider.ssn":1,"taxentity.account_number":1,"taxentity.routing_number":1};
   var ACR = {DEA:1,CDS:1,NPI:1,CAQH:1,OA:1,PDF:1,SOP:1,LOB:1,LOBS:1,MD:1,DO:1,NP:1,PA:1,ID:1,API:1,US:1,PLLC:1,LLC:1,EFT:1,ERA:1,SLA:1,HMO:1,PPO:1,POS:1,CMS:1};
-  var ENUM_KEYS = /^(status|status_reason|enrollment_type|request_type|submission_type|enrollment_request_submission_type|practice_location_type|address_sync_with_tax_entity_type|management_type|overall_status|professional_id_type|duration_type|override_licenses_status|link_type|health_plan_data_type|request_creation_source|current_contracting_sub_status|sla_bucket|coverage_type|training_type|type|enrollment_team_type|name_type|admitting_privilege_type|privilege_status)$/;
+  var ENUM_KEYS = /^(status|par_status|existing_enrollment_type|status_reason|enrollment_type|request_type|submission_type|enrollment_request_submission_type|practice_location_type|address_sync_with_tax_entity_type|management_type|overall_status|professional_id_type|duration_type|override_licenses_status|link_type|health_plan_data_type|request_creation_source|current_contracting_sub_status|sla_bucket|coverage_type|training_type|type|enrollment_team_type|name_type|admitting_privilege_type|privilege_status)$/;
 
-  /* ---------- formatting ---------- */
+  /* ---------- value text ---------- */
   function humanize(s){
-    return String(s).split("_").filter(Boolean).map(function(w){
-      return ACR[w] ? w : w.charAt(0) + w.slice(1).toLowerCase();
-    }).join(" ");
+    return String(s).split("_").filter(Boolean).map(function(w){ w = w.toUpperCase(); return ACR[w] ? w : w.charAt(0) + w.slice(1).toLowerCase(); }).join(" ");
   }
-  function pad(n){ return (n < 10 ? "0" : "") + n; }
-  function fmtDate(s){
-    var m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(s);
-    if(!m) return s;
-    return m[2] + "/" + m[3] + "/" + m[1];
+  /* Exactly what the platform stores. Only lists are joined and true/false read Yes/No. */
+  function raw(v){
+    if(v === null || v === undefined) return "";
+    if(typeof v === "boolean") return v ? "Yes" : "No";
+    if(Array.isArray(v)) return v.map(raw).filter(function(x){ return x !== ""; }).join(", ");
+    if(typeof v === "object") return Object.keys(v).length ? JSON.stringify(v) : "";
+    return String(v);
   }
+  function fmtDate(s){ var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s); return m ? m[2] + "/" + m[3] + "/" + m[1] : s; }
   function fmtPhone(s){
     var d = String(s).replace(/[^\d]/g, "");
     if(d.length === 11 && d.charAt(0) === "1") d = d.slice(1);
-    if(d.length !== 10) return String(s);
-    return "(" + d.slice(0,3) + ") " + d.slice(3,6) + "-" + d.slice(6);
+    return d.length === 10 ? "(" + d.slice(0,3) + ") " + d.slice(3,6) + "-" + d.slice(6) : String(s);
   }
-  function fmtZip(s){
-    var d = String(s).trim();
-    return /^\d{9}$/.test(d) ? d.slice(0,5) + "-" + d.slice(5) : d;
-  }
-  function fmtMoney(n){
-    var x = Number(n);
-    if(!isFinite(x)) return String(n);
-    return "$" + x.toLocaleString("en-US", {maximumFractionDigits: 2});
-  }
-  function fileName(s){
-    var t = String(s).split("?")[0];
-    var p = t.split("/");
-    try { return decodeURIComponent(p[p.length - 1] || t); } catch(e){ return p[p.length - 1] || t; }
-  }
-  function fmt(key, v){
+  function fileName(s){ var p = String(s).split("?")[0].split("/"); try { return decodeURIComponent(p[p.length - 1]); } catch(e){ return p[p.length - 1]; } }
+  /* Opt-in form formatting: MM/DD/YYYY dates, (555) 555-5555 phones, ZIP+4, $ limits, readable codes, document file names. */
+  function pretty(key, v){
     if(v === null || v === undefined) return "";
     var k = String(key || "").split(".").pop();
-    if(typeof v === "boolean") return v ? "Yes" : "No";
-    if(Array.isArray(v)) return v.map(function(x){ return fmt(k, x); }).filter(function(x){ return x !== ""; }).join(", ");
-    if(typeof v === "object"){
-      var parts = [];
-      for(var kk in v){ if(Object.prototype.hasOwnProperty.call(v, kk)){ var f = fmt(kk, v[kk]); if(f !== "") parts.push(humanize(kk) + ": " + f); } }
-      return parts.join("; ");
-    }
+    if(Array.isArray(v)) return v.map(function(x){ return pretty(k, x); }).filter(function(x){ return x !== ""; }).join(", ");
+    if(typeof v === "boolean" || typeof v === "object") return raw(v);
     if(typeof v === "number"){
-      if(/(aggregate|each_claim|limit)$/.test(k)) return fmtMoney(v);
+      if(/(aggregate|each_claim|limit)$/.test(k)) return "$" + v.toLocaleString("en-US", {maximumFractionDigits: 2});
       return String(v);
     }
     var s = String(v).trim();
     if(s === "") return "";
     if(/^s3:\/\//i.test(s)) return fileName(s);
-    if(/(^|_)(date|at|start|end)$/.test(k) || /_date_/.test(k) || /^\d{4}-\d{2}-\d{2}(T|$)/.test(s)){
-      if(/^\d{4}-\d{2}-\d{2}/.test(s)) return fmtDate(s);
-    }
+    if(/^\d{4}-\d{2}-\d{2}(T|$|\s)/.test(s)) return fmtDate(s);
     if(/(phone|fax)/.test(k) && /^[+\d\s().-]{10,}$/.test(s)) return fmtPhone(s);
-    if(/(zip|postal)/.test(k)) return fmtZip(s);
+    if(/(zip|postal)/.test(k) && /^\d{9}$/.test(s)) return s.slice(0,5) + "-" + s.slice(5);
     if(ENUM_KEYS.test(k) && /^[A-Z][A-Z0-9_]+$/.test(s) && !ACR[s]) return humanize(s);
     return s;
   }
   function mask(key, s){
     if(!s) return s;
-    var d = s.replace(/[^\dA-Za-z]/g, "");
-    if(/birth_date$/.test(key)) return "••/••/" + s.slice(-4);
-    return "•••• " + d.slice(-4);
+    if(/birth_date$/.test(key)) return "••/••/" + s.replace(/\D/g, "").slice(/^\d{4}/.test(s) ? 0 : -4, /^\d{4}/.test(s) ? 4 : undefined);
+    return "•••• " + s.replace(/[^\dA-Za-z]/g, "").slice(-4);
+  }
+  /* Text for one row under the viewer's options. */
+  function text(row, opts){
+    opts = opts || {};
+    return opts.format ? pretty(row.key, row.v) : raw(row.v);
   }
 
   /* ---------- catalog ---------- */
@@ -272,14 +456,13 @@ var EX = (function(){
       var data = live && (live.data || live);
       if(Array.isArray(data) && data.length >= 3 && data[0].attributes){
         return data.map(function(g){
-          return [g.group_display_name, (g.attributes || []).filter(function(a){ return a && a.uri && a.type !== "json" || (a && a.uri === "taxentity.type_of_care_provide"); }).map(function(a){ return [a.uri, a.display_name]; })];
+          return [g.group_display_name, (g.attributes || []).filter(function(a){ return a && a.uri && (a.type !== "json" || a.uri === "taxentity.type_of_care_provide"); }).map(function(a){ return [a.uri, a.display_name]; })];
         });
       }
     } catch(e){}
     return EX_CATALOG;
   }
 
-  /* Sub-section placement keeps related fields together the way the platform profile tabs do. */
   var PROVIDER_SUBS = [
     ["Personal Information", /^(full_name|first_name|middle_name|last_name|suffix|gender|birth_\w+|race|county|height_inches|weight_in_lbs|hair_color|eye_color)$/],
     ["Citizenship", /^(us_citizen|citizenship_country|visa_\w+|eligible_to_work_in_us)$/],
@@ -304,238 +487,708 @@ var EX = (function(){
     ["Address", /^(mailing_|billing_address_county|practice_location_county)/],
     ["Contact", /./]
   ];
-  function subOf(list, field){
-    for(var i = 0; i < list.length; i++) if(list[i][1].test(field)) return list[i][0];
-    return list[list.length - 1][0];
-  }
+  function subOf(list, field){ for(var i = 0; i < list.length; i++) if(list[i][1].test(field)) return list[i][0]; return list[list.length - 1][0]; }
 
-  /* Build rows for one catalog group against one record. */
-  function rowsFor(attrs, prefix, rec, subs, section){
+  /* Repeating-record columns, named the way the platform's API names them. */
+  var COLS = {
+    malpractice: [["Name","name"],["Policy Number","policy_number"],["Coverage Type","coverage_type"],["Current Effective Date","current_effective_date"],["Current Expiration Date","current_expiration_date"],["Per Occurence Limit","per_occurence_limit"],["Aggregate Limit","aggregate_limit"],["Is Self Insured","is_self_insured"],["Address Street 1","address_street_1"],["Address Street 2","address_street_2"],["City","city"],["State","state"],["Postal Code","postal_code"],["Country","country"],["Phone Number","phone_number"],["Length Of Time With Carrier","length_of_time_with_carrier"],["Policy Note","policy_note"]],
+    education: [["Name","name"],["Degree","degree"],["Start Date","start_date"],["End Date","end_date"],["Address Street 1","address_street_1"],["Address Street 2","address_street_2"],["City","city"],["State","state"],["Postal Code","postal_code"],["Country","country"],["Is Primary","is_primary"]],
+    certifications: [["Certifying Board Name","certifying_board_name"],["Speciality","speciality"],["Speciality Level","speciality_level"],["Number","number"],["Is Board Certified","is_board_certified"],["Initial Date","initial_date"],["Expiration Date","expiration_date"],["Recertification Date","recertification_date"],["Board Exam Date","board_exam_date"],["Not Board Certified Reason","not_board_certified_reason"]],
+    training: [["Institution Name","institution_name"],["Training Type","training_type"],["Speciality","speciality"],["Start Date","start_date"],["End Date","end_date"],["Program Director","program_director"],["Current Program Director","current_program_director"],["Is Program Successfully Completed","is_program_successfully_completed"],["Street 1","street_1"],["Street 2","street_2"],["Address","address"],["City","city"],["State","state"],["Postal Code","postal_code"],["Country","country"]],
+    hospital: [["Hospital Name","hospital_name"],["Primary Hospital","primary_hospital"],["Admitting Privilege Type","admitting_privilege_type"],["Privilege Status","privilege_status"],["Department","department"],["Start Date","start_date"],["End Date","end_date"],["Street 1","street_1"],["Street 2","street_2"],["City","city"],["State","state"],["Zip Code","zip_code"],["Phone Number","phone_number"],["Fax Number","fax_number"]],
+    activeenrollment: [["Par Status","par_status"],["New Health Plan Id","new_health_plan_id"],["Effective Date","effective_date"],["Re Validation Date","re_validation_date"],["Lobs","lobs"],["Is Active","is_active"],["Existing Enrollment Type","existing_enrollment_type"],["Terminated At","terminated_at"],["Termination Reason","termination_reason"],["End Of Claims Date","end_of_claims_date"],["Notes","notes"]],
+    employment: [["Employer Name","employer_name"],["Type","type"],["Currently Employed","currently_employed"],["Start Date","start_date"],["End Date","end_date"],["Address","address"],["City","city"],["State","state"],["Zip Code","zip_code"],["Country","country"],["Phone Number","phone_number"],["Email Address","email_address"],["Contact Information","contact_information"],["Reason For Discontinuance","reason_for_discontinuance"],["Gap Explanation","gap_explanation"]]
+  };
+  var TABLES = [
+    ["Professional IDs", "prof_ids", [["Professional Id Type","professional_id_type"],["State","state"],["Number","number"],["Issue Date","issue_date"],["Expiration Date","expiration_date"],["License Type","license_type"],["Duration Type","duration_type"],["License Unlimited","license_unlimited"],["Is Currently Practicing In State","is_currently_practicing_in_state"],["Is Available","is_available"],["Used For This Enrollment","_active"]]],
+    ["Education", "education", COLS.education],
+    ["Training", "training", COLS.training],
+    ["Work History", "employment", COLS.employment],
+    ["Malpractice Insurance", "malpractice", COLS.malpractice],
+    ["Group Liability Insurance", "tax_ins", [["Name","name"],["Policy Number","insurer_policy_number"],["Current Effective Date","issue_date"],["Current Expiration Date","expiration_date"],["Pre-Occurrence Limit","each_claim"],["Aggregate Coverage Limit","aggregate"],["Link Type","link_type"],["Street 1","address_street_1"],["Street 2","address_street_2"],["City","city"],["State","state"],["Postal Code","postal_code"],["Country","country"],["Copy Of Document","copy_of_document"]]],
+    ["Board Certifications", "certifications", COLS.certifications],
+    ["Hospital Privileges", "hospitals", [["Hospital Name","hospital_name"],["Primary Hospital","primary_hospital"],["Admitting Privilege Type","admitting_privilege_type"],["Privilege Status","privilege_status"],["Department","department"],["Start Date","start_date"],["End Date","end_date"],["Street 1","street_1"],["Street 2","street_2"],["City","city"],["State","state"],["Zip Code","zip_code"],["Phone Number","phone_number"],["Fax Number","fax_number"]]],
+    ["References", "refs", [["Name Title","name_title"],["Email","email"],["Phone Number","phone_number"],["Address Street 1","address_street_1"],["Address Street 2","address_street_2"],["City","city"],["State","state"],["Postal Code","postal_code"],["Country","country"]]],
+    ["Other Names", "other_names", [["First Name","first_name"],["Middle Name","middle_name"],["Last Name","last_name"],["Suffix","suffix"],["Name Type","name_type"],["From Year","from_year"],["To Year","to_year"]]],
+    ["Group Providers", "group_providers", [["Name","name"],["Individual Npi","npi"],["Caqh Id","caqh_id"],["Provider Type","provider_type"],["Nucc Taxonomy Code","taxonomy"]]]
+  ];
+
+  /* ---------- model ---------- */
+  function first(){ for(var i = 0; i < arguments.length; i++){ var x = arguments[i]; if(x !== null && x !== undefined && String(x).trim() !== "") return x; } return ""; }
+  function arr(x){ return Array.isArray(x) ? x : []; }
+  function up(s){ return String(s || "").toUpperCase(); }
+
+  function catalogRows(attrs, prefix, rec, subs, section, idPrefix){
     var rows = [];
-    attrs.forEach(function(a){
+    attrs.forEach(function(a, i){
       var uri = a[0];
       if(SKIP[uri] || uri.indexOf(prefix + ".") !== 0) return;
-      var field = uri.slice(prefix.length + 1);
-      var raw = rec ? rec[field] : undefined;
-      rows.push({field: a[1], key: uri, sub: subs ? subOf(subs, field) : "", value: fmt(field, raw), section: section});
+      var f = uri.slice(prefix.length + 1);
+      rows.push({id: (idPrefix || prefix) + "." + f, key: uri, field: a[1], sub: subs ? subOf(subs, f) : "", section: section, v: rec ? rec[f] : null, _i: i});
     });
-    /* order by sub-section, keep catalog order inside */
-    if(subs){
-      var order = subs.map(function(s){ return s[0]; });
-      rows.forEach(function(r, i){ r._i = i; });
-      rows.sort(function(x, y){ return (order.indexOf(x.sub) - order.indexOf(y.sub)) || (x._i - y._i); });
-    }
-    return dedupe(rows);
+    if(subs){ var order = subs.map(function(s){ return s[0]; }); rows.sort(function(x, y){ return (order.indexOf(x.sub) - order.indexOf(y.sub)) || (x._i - y._i); }); }
+    var kept = dedupe(rows);
+    /* rows folded into a same-named row stay reachable by id (form fill, roster) */
+    kept.extra = rows.filter(function(r){ return kept.indexOf(r) < 0; });
+    return kept;
   }
-  /* Same display name twice in a sub-section (e.g. County): keep each distinct value, or one empty row. */
+  /* Same display name twice in a group (e.g. County): keep each distinct value, or one empty row. */
   function dedupe(rows){
-    var seen = {}, out = [];
-    rows.forEach(function(r){
-      var k = r.sub + "|" + r.field;
-      var g = seen[k] || (seen[k] = {rows: [], vals: {}});
-      g.rows.push(r);
-    });
-    var done = {};
-    rows.forEach(function(r){
-      var k = r.sub + "|" + r.field;
-      if(done[k]) return; done[k] = 1;
-      var g = seen[k].rows;
-      if(g.length === 1){ out.push(g[0]); return; }
-      var vals = {}, kept = 0;
-      g.forEach(function(x){ if(x.value && !vals[x.value]){ vals[x.value] = 1; out.push(x); kept++; } });
+    var groups = {}, order = [];
+    rows.forEach(function(r){ var k = r.sub + "|" + r.field; if(!groups[k]){ groups[k] = []; order.push(k); } groups[k].push(r); });
+    var out = [];
+    order.forEach(function(k){
+      var g = groups[k]; if(g.length === 1){ out.push(g[0]); return; }
+      var seen = {}, kept = 0;
+      g.forEach(function(r){ var t = raw(r.v); if(t && !seen[t]){ seen[t] = 1; out.push(r); kept++; } });
       if(!kept) out.push(g[0]);
     });
     return out;
   }
-
-  /* ---------- tables (repeating records) ---------- */
-  var TABLES = [
-    ["Professional IDs", "prof_ids", [["Professional Id Type","professional_id_type"],["State","state"],["Number","number"],["Issue Date","issue_date"],["Expiration Date","expiration_date"],["License Type","license_type"],["Duration Type","duration_type"],["License Unlimited","license_unlimited"],["Is Currently Practicing In State","is_currently_practicing_in_state"],["Available","is_available"],["Used For This Enrollment","_active"]]],
-    ["Education", "education", [["Name","name"],["Degree","degree"],["Start Date","start_date"],["End Date","end_date"],["Street 1","address_street_1"],["Street 2","address_street_2"],["City","city"],["State","state"],["Postal Code","postal_code"],["Country","country"],["Is Primary","is_primary"]]],
-    ["Training", "training", [["Institution Name","institution_name"],["Training Type","training_type"],["Speciality","speciality"],["Start Date","start_date"],["End Date","end_date"],["Program Director","program_director"],["Current Program Director","current_program_director"],["Program Successfully Completed","is_program_successfully_completed"],["Street 1","street_1"],["Street 2","street_2"],["Address","address"],["City","city"],["State","state"],["Postal Code","postal_code"],["Country","country"]]],
-    ["Work History", "employment", [["Employer Name","employer_name"],["Type","type"],["Currently Employed","currently_employed"],["Start Date","start_date"],["End Date","end_date"],["Address","address"],["City","city"],["State","state"],["Zip Code","zip_code"],["Country","country"],["Phone Number","phone_number"],["Email Address","email_address"],["Contact Information","contact_information"],["Reason For Discontinuance","reason_for_discontinuance"],["Gap Explanation","gap_explanation"]]],
-    ["Malpractice Insurance", "malpractice", [["Name","name"],["Policy Number","policy_number"],["Coverage Type","coverage_type"],["Current Effective Date","current_effective_date"],["Current Expiration Date","current_expiration_date"],["Per Occurrence Limit","per_occurence_limit"],["Aggregate Limit","aggregate_limit"],["Is Self Insured","is_self_insured"],["Street 1","address_street_1"],["Street 2","address_street_2"],["City","city"],["State","state"],["Postal Code","postal_code"],["Country","country"],["Phone Number","phone_number"],["Length Of Time With Carrier","length_of_time_with_carrier"],["Policy Note","policy_note"]]],
-    ["Group Liability Insurance", "tax_ins", [["Name","name"],["Policy Number","insurer_policy_number"],["Current Effective Date","issue_date"],["Current Expiration Date","expiration_date"],["Pre-Occurrence Limit","each_claim"],["Aggregate Coverage Limit","aggregate"],["Link Type","link_type"],["Street 1","address_street_1"],["Street 2","address_street_2"],["City","city"],["State","state"],["Postal Code","postal_code"],["Country","country"],["Copy Of Document","copy_of_document"]]],
-    ["Board Certifications", "certifications", [["Certifying Board Name","certifying_board_name"],["Speciality","speciality"],["Speciality Level","speciality_level"],["Number","number"],["Is Board Certified","is_board_certified"],["Initial Date","initial_date"],["Expiration Date","expiration_date"],["Recertification Date","recertification_date"],["Board Exam Date","board_exam_date"],["Not Board Certified Reason","not_board_certified_reason"]]],
-    ["Hospital Privileges", "hospitals", [["Hospital Name","hospital_name"],["Primary Hospital","primary_hospital"],["Admitting Privilege Type","admitting_privilege_type"],["Privilege Status","privilege_status"],["Department","department"],["Start Date","start_date"],["End Date","end_date"],["Street 1","street_1"],["Street 2","street_2"],["City","city"],["State","state"],["Zip Code","zip_code"],["Phone Number","phone_number"],["Fax Number","fax_number"]]],
-    ["References", "refs", [["Name Title","name_title"],["Email","email"],["Phone Number","phone_number"],["Street 1","address_street_1"],["Street 2","address_street_2"],["City","city"],["State","state"],["Postal Code","postal_code"],["Country","country"]]],
-    ["Other Names", "other_names", [["First Name","first_name"],["Middle Name","middle_name"],["Last Name","last_name"],["Suffix","suffix"],["Name Type","name_type"],["From Year","from_year"],["To Year","to_year"]]],
-    ["Group Providers", "group_providers", [["Name","name"],["Individual Npi","npi"],["Caqh Id","caqh_id"],["Provider Type","provider_type"],["Nucc Taxonomy Code","taxonomy"]]]
-  ];
-  function buildTables(raw, activeIds){
-    var out = [];
-    TABLES.forEach(function(t){
-      var list = raw[t[1]];
-      if(!Array.isArray(list) || !list.length) return;
-      var rows = list.map(function(rec){
-        if(t[1] === "prof_ids") rec = Object.assign({}, rec, {_active: activeIds[rec.id] ? "Yes" : ""});
-        return t[2].map(function(c){ return c[1] === "_active" ? rec._active : fmt(c[1], rec[c[1]]); });
-      });
-      /* drop columns that are empty in every row */
-      var keep = t[2].map(function(c, i){ return rows.some(function(r){ return r[i] !== ""; }); });
-      out.push({name: t[0], columns: t[2].filter(function(c, i){ return keep[i]; }).map(function(c){ return c[0]; }), rows: rows.map(function(r){ return r.filter(function(x, i){ return keep[i]; }); })});
-    });
-    return out;
+  function colRows(prefix, cols, rec, section, sub){
+    return cols.map(function(c){ return {id: prefix + "." + c[1], key: prefix + "." + c[1], field: c[0], sub: sub || "", section: section, v: rec ? rec[c[1]] : null}; });
   }
 
-  /* ---------- model ---------- */
-  function first(){ for(var i = 0; i < arguments.length; i++){ var x = arguments[i]; if(x !== null && x !== undefined && String(x).trim() !== "") return x; } return ""; }
-  function idOf(x){ return x && typeof x === "object" ? x.id : x; }
+  function pickId(ids, type, state, preferred){
+    if(preferred) return preferred;
+    var list = arr(ids).filter(function(x){ return up(x.professional_id_type) === type; });
+    return list.filter(function(x){ return x.state === state; })[0] || list[0] || null;
+  }
 
-  function build(raw, liveCatalog){
+  function build(r, liveCatalog, o){
+    o = o || {};
     var cat = catalogFrom(liveCatalog);
-    var er = raw.er || {}, d = raw.detail || {}, p = raw.provider || null;
     var attrs = []; cat.forEach(function(g){ attrs = attrs.concat(g[1]); });
-    var sections = [], warnings = [];
-    var isGroup = String(first(er.enrollment_type, d.enrollment_type)).toUpperCase() === "GROUP";
-
+    var er = r.er || {}, d = r.detail || {}, p = r.provider || null, tax = r.tax || null;
+    var all = !!o.all;
+    var isGroup = up(first(er.enrollment_type, d.enrollment_type)) === "GROUP";
     var provName = p ? first(p.full_name, [p.first_name, p.middle_name, p.last_name].filter(Boolean).join(" ")) : "";
-    if(p && !p.full_name) p = Object.assign({}, p, {full_name: provName});
-    var name = first(provName, d.provider_name, er.provider_user_name, isGroup ? first(raw.tax && raw.tax.legal_name, d.tax_entity_name) : "", d.request_id, "Enrollment");
-    var hpName = first(raw.hp && raw.hp.name, d.health_plan_name);
+    var name = first(provName, d.provider_name, er.provider_user_name, isGroup ? first(tax && tax.legal_name, d.tax_entity_name) : "", d.request_id, all ? "" : "Enrollment");
+    var hpName = first(r.hp && r.hp.name, d.health_plan_name);
     var state = first(er.state, d.state);
-    var lobs = first(fmt("lobs", er.lobs), fmt("lobs", d.lobs), er.lob);
+    var lobs = first(raw(er.lobs), raw(d.lobs), er.lob);
+    var requestId = first(d.request_id, [provName || (tax && tax.legal_name), hpName, state].filter(Boolean).join("-"));
+    var otherLocs = arr(r.other_locs);
+    var ai = r.active_ids || {};
+    var sections = [], warnings = [];
 
-    var requestId = first(d.request_id, [provName || (raw.tax && raw.tax.legal_name), hpName, state].filter(Boolean).join("-"));
-    var groupNames = Array.isArray(raw.group_providers) ? raw.group_providers.map(function(g){ return g.name || g.full_name; }).filter(Boolean).join(", ") : "";
-    var otherLocs = Array.isArray(raw.other_locs) ? raw.other_locs : [];
-    var ai = raw.active_ids || {};
-
-    var E = function(field, key, val){ return {field: field, key: "enrollment." + key, sub: "", value: fmt(key, val), section: "Enrollment Request"}; };
+    var E = function(field, key, v){ return {id: "enrollment." + key, key: "enrollment." + key, field: field, sub: "", section: "Enrollment Request", v: v}; };
     sections.push({name: "Enrollment Request", rows: [
       E("Request ID", "request_id", requestId),
-      E("Enrollment ID", "id", first(er.id, d.id, raw.id)),
+      E("Enrollment ID", "id", first(er.id, d.id, r.id)),
       E("Enrollment Type", "enrollment_type", first(er.enrollment_type, d.enrollment_type)),
       E("Request Type", "request_type", first(er.request_type, d.request_type)),
       E("Status", "status", first(er.status, d.status)),
       E("Status Reason", "status_reason", first(er.status_reason, d.status_reason)),
       E("State", "state", state),
-      E("Lines Of Business", "lobs", lobs),
-      E("Client", "client_name", first(er.client_name, d.client_name)),
-      E("Health Plan", "health_plan_name", hpName),
+      E("Lobs", "lobs", lobs),
+      E("Client Name", "client_name", first(er.client_name, d.client_name)),
+      E("Health Plan Name", "health_plan_name", hpName),
       E("Submission Type", "enrollment_request_submission_type", first(er.enrollment_request_submission_type, d.submission_type)),
-      E("Provider", "provider_name", isGroup ? "" : first(provName, d.provider_name)),
-      E("Tax Entity", "tax_entity_name", first(raw.tax && raw.tax.legal_name, d.tax_entity_name)),
-      E("Primary Practice Location", "primary_practice_location_name", first(raw.loc && raw.loc.name, d.primary_practice_location_name)),
-      E("Other Practice Locations", "other_practice_location_names", first(otherLocs.map(function(l){ return l.name; }).join(", "), fmt("x", d.other_practice_location_names))),
-      E("Group Providers", "group_providers", groupNames),
+      E("Provider Name", "provider_name", isGroup ? "" : first(d.provider_name, provName)),
+      E("Tax Entity Name", "tax_entity_name", first(d.tax_entity_name, tax && tax.legal_name)),
+      E("Primary Practice Location Name", "primary_practice_location_name", first(d.primary_practice_location_name, r.loc && r.loc.name)),
+      E("Other Practice Location Names", "other_practice_location_names", first(raw(d.other_practice_location_names), otherLocs.map(function(l){ return l.name; }).join(", "))),
+      E("Group Providers", "group_providers", arr(r.group_providers).map(function(g){ return g.name; }).filter(Boolean).join(", ")),
       E("Created At", "created_at", first(er.created_at, d.created_at)),
-      E("Created By", "created_by_name", first(er.created_by_name, d.created_by_name)),
-      E("Submission OA", "submission_oa_name", first(d.submission_oa_name, er.submission_oa_name)),
-      E("Submitted At", "submission_oa_submitted_at", first(er.submission_oa_submitted_at, d.submission_oa_submitted_at)),
-      E("Follow-Up OA", "followup_oa_name", first(d.followup_oa_name, er.followup_oa_name)),
-      E("Follow-Up Date", "followup_date", first(er.followup_date, d.followup_date)),
-      E("Follow-Up Completed At", "followup_oa_completed_at", first(er.followup_oa_completed_at, d.followup_oa_completed_at)),
-      E("Contracting OA", "contracting_oa_name", first(d.contracting_oa_name, er.contracting_oa_name)),
-      E("Contracting Sub Status", "current_contracting_sub_status", first(er.current_contracting_sub_status, d.current_contracting_sub_status)),
+      E("Created By Name", "created_by_name", first(d.created_by_name, er.created_by_name)),
+      E("Submission OA Name", "submission_oa_name", first(d.submission_oa_name, er.submission_oa_name)),
+      E("Submission OA Submitted At", "submission_oa_submitted_at", first(er.submission_oa_submitted_at, d.submission_oa_submitted_at)),
+      E("Followup OA Name", "followup_oa_name", first(d.followup_oa_name, er.followup_oa_name)),
+      E("Followup Date", "followup_date", first(er.followup_date, d.followup_date)),
+      E("Followup OA Completed At", "followup_oa_completed_at", first(er.followup_oa_completed_at, d.followup_oa_completed_at)),
+      E("Contracting OA Name", "contracting_oa_name", first(d.contracting_oa_name, er.contracting_oa_name)),
+      E("Current Contracting Sub Status", "current_contracting_sub_status", first(er.current_contracting_sub_status, d.current_contracting_sub_status)),
       E("CAQH Audit Status", "caqh_audit_status", d.caqh_audit_status),
       E("CAQH Audit ID", "caqh_audit_id", d.caqh_audit_id),
       E("SLA Bucket", "sla_bucket", er.sla_bucket),
       E("SLA Counter Days", "sla_counter_days", er.sla_counter_days),
-      E("Active Professional ID Source", "health_plan_data_type", ai.health_plan_data_type),
+      E("Health Plan Data Type", "health_plan_data_type", ai.health_plan_data_type),
       E("Notes", "notes", first(er.notes, d.notes))
     ]});
 
-    if(p){
-      sections.push({name: "Provider", rows: rowsFor(attrs, "provider", p, PROVIDER_SUBS, "Provider")});
-    } else if(!isGroup){
-      warnings.push("provider profile");
-    }
+    if(r.active_enr || all) sections.push({name: "Active Enrollment", rows: colRows("activeenrollment", COLS.activeenrollment, r.active_enr, "Active Enrollment", "")});
+    if(p || all) sections.push({name: "Provider", rows: catalogRows(attrs, "provider", p, PROVIDER_SUBS, "Provider")});
+    else if(!isGroup) warnings.push("provider profile");
 
-    /* Professional IDs used for this enrollment: the license the platform marked active, else the license for the enrollment state */
-    var ids = Array.isArray(raw.prof_ids) ? raw.prof_ids : [];
-    var lic = ai.license || null;
-    if(!lic && ids.length){
-      lic = ids.filter(function(x){ return String(x.professional_id_type).toUpperCase() === "LICENSE" && x.state === state; })[0] || null;
-    }
-    var activeMap = {};
-    var profRows = [];
-    [["State License", lic], ["DEA", ai.dea], ["CDS", ai.cds]].forEach(function(pair){
-      var rec = pair[1];
-      if(!rec) return;
-      activeMap[rec.id] = 1;
-      rowsFor(attrs, "professionalid", rec, null, "Professional ID").forEach(function(r){ r.sub = pair[0]; profRows.push(r); });
+    /* Professional IDs: the ones the platform marked for this enrollment; otherwise the record for the enrollment state */
+    var ids = arr(r.prof_ids);
+    var lic = pickId(ids, "LICENSE", state, ai.license);
+    var picks = [["State License", "license", lic], ["DEA", "dea", pickId(ids, "DEA", state, ai.dea)], ["CDS", "cds", pickId(ids, "CDS", state, ai.cds)], ["Medicare", "medicare", pickId(ids, "MEDICARE", state)], ["Medicaid", "medicaid", pickId(ids, "MEDICAID", state)]];
+    var activeMap = {}, profRows = [], profExtra = [];
+    picks.forEach(function(pk){
+      if(!pk[2] && !all) return;
+      if(pk[2]) activeMap[pk[2].id] = 1;
+      var cr = catalogRows(attrs, "professionalid", pk[2], null, "Professional ID", "professionalid[" + pk[1] + "]");
+      cr.concat(cr.extra).forEach(function(x){ x.sub = pk[0]; }); cr.forEach(function(x){ profRows.push(x); }); profExtra = profExtra.concat(cr.extra);
     });
+    profRows.extra = profExtra;
     if(profRows.length) sections.push({name: "Professional ID", rows: profRows});
 
-    sections.push({name: "Tax Entity", rows: rowsFor(attrs, "taxentity", raw.tax, TAX_SUBS, "Tax Entity")});
-    if(!raw.tax) warnings.push("tax entity");
-    var ti = Array.isArray(raw.tax_ins) ? raw.tax_ins : [];
-    if(ti.length) sections.push({name: "Tax Entity Liability Insurance", rows: rowsFor(attrs, "taxentityliabilityinsurance", ti[0], null, "Tax Entity Liability Insurance")});
-    sections.push({name: "Health Plan", rows: rowsFor(attrs, "healthplan", raw.hp, null, "Health Plan")});
-    sections.push({name: "Primary Practice Location", rows: rowsFor(attrs, "primary_practicelocation", raw.loc, LOC_SUBS, "Primary Practice Location")});
-    if(!raw.loc) warnings.push("primary practice location");
-    otherLocs.forEach(function(l, i){
+    var mal = arr(r.malpractice)[0] || null;
+    if(mal || all) sections.push({name: "Professional Liability Insurance", rows: colRows("malpractice", COLS.malpractice, mal, "Professional Liability Insurance", "Current Policy")});
+    var edus = arr(r.education);
+    var edu = edus.filter(function(x){ return x.is_primary; })[0] || edus[0] || null;
+    if(edu || all) sections.push({name: "Education", rows: colRows("education", COLS.education, edu, "Education", edu && edu.is_primary ? "Primary Education" : "Most Recent Education")});
+    var cert = arr(r.certifications)[0] || null;
+    if(cert || all) sections.push({name: "Board Certification", rows: colRows("certification", COLS.certifications, cert, "Board Certification", "Most Recent Certification")});
+
+    var hosps = arr(r.hospitals), hosp = hosps.filter(function(x){ return x.primary_hospital; })[0] || hosps[0] || null;
+    if(hosp || all) sections.push({name: "Hospital Affiliation", rows: colRows("hospital", COLS.hospital, hosp, "Hospital Affiliation", hosp && hosp.primary_hospital ? "Primary Hospital" : "Most Recent Hospital")});
+    if(tax || all) sections.push({name: "Tax Entity", rows: catalogRows(attrs, "taxentity", tax, TAX_SUBS, "Tax Entity")});
+    if(!tax && !all) warnings.push("tax entity");
+    var ti = arr(r.tax_ins);
+    if(ti.length || all) sections.push({name: "Tax Entity Liability Insurance", rows: catalogRows(attrs, "taxentityliabilityinsurance", ti[0], null, "Tax Entity Liability Insurance")});
+    sections.push({name: "Health Plan", rows: catalogRows(attrs, "healthplan", r.hp, null, "Health Plan")});
+    sections.push({name: "Primary Practice Location", rows: catalogRows(attrs, "primary_practicelocation", r.loc, LOC_SUBS, "Primary Practice Location")});
+    if(!r.loc && !all) warnings.push("primary practice location");
+    (all && !otherLocs.length ? [null, null] : otherLocs).forEach(function(l, i){
       var label = "Additional Practice Location " + (i + 1);
-      var rows = rowsFor(attrs, "additional_practicelocation", l, LOC_SUBS, label);
-      sections.push({name: label + (l.name ? ": " + l.name : ""), rows: rows});
+      sections.push({name: label + (l && l.name ? ": " + l.name : ""), rows: catalogRows(attrs, "additional_practicelocation", l, LOC_SUBS, label, "additional_practicelocation[" + (i + 1) + "]")});
     });
 
-    var tables = buildTables(raw, activeMap);
+    var index = {};
+    sections.forEach(function(s){
+      s.hiddenRows = s.rows.extra || [];
+      s.rows.concat(s.hiddenRows).forEach(function(x){ x.section = s.name.replace(/:.*/, ""); delete x._i; index[x.id] = x; });
+    });
 
-    var kpis = [
-      ["Request ID", requestId, ""],
-      ["Individual NPI", p ? fmt("x", p.individual_npi) : "", ""],
-      ["Type 2 NPI", raw.tax ? fmt("x", raw.tax.npi) : "", ""],
-      ["Tax ID", raw.tax ? fmt("x", raw.tax.tax_id) : "", "taxentity.tax_id"],
-      ["CAQH ID", p ? fmt("x", p.caqh_id) : "", ""],
-      ["License", lic ? [lic.state, lic.number].filter(Boolean).join(" ") : "", ""]
-    ].filter(function(k){ return k[1]; });
+    var tables = buildTables(r, activeMap);
+    var kpis = ["enrollment.request_id", "provider.individual_npi", "taxentity.npi", "taxentity.tax_id", "provider.caqh_id", "professionalid[license].number"]
+      .map(function(id){ var x = index[id]; return x && raw(x.v) ? {label: {"enrollment.request_id":"Request ID","provider.individual_npi":"Individual NPI","taxentity.npi":"Type 2 NPI","taxentity.tax_id":"Tax ID","provider.caqh_id":"CAQH ID","professionalid[license].number":"License " + raw(lic && lic.state)}[id], row: x} : null; })
+      .filter(Boolean);
 
     var safe = function(s){ return String(s || "").replace(/[\\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim(); };
-    var filename = "Enrollment - " + [safe(name), safe(hpName), safe(state)].filter(Boolean).join(" - ") + ".xlsx";
-
     return {
-      id: first(er.id, d.id, raw.id), requestId: requestId, name: name,
+      id: first(er.id, d.id, r.id), requestId: requestId, name: name, hp: hpName, state: state,
       subtitle: [hpName, state, lobs, first(er.client_name, d.client_name)].filter(Boolean).join("  ·  "),
-      status: first(er.status, d.status), statusLabel: fmt("status", first(er.status, d.status)),
-      isGroup: isGroup, kpis: kpis, sections: sections, tables: tables, filename: filename, warnings: warnings
+      status: first(er.status, d.status), isGroup: isGroup, kpis: kpis, sections: sections, tables: tables, index: index,
+      checks: all ? [] : checks(r, index, lic, mal), warnings: warnings,
+      filename: "Enrollment - " + [safe(name), safe(hpName), safe(state)].filter(Boolean).join(" - ") + ".xlsx"
     };
   }
 
-  /* ---------- workbook ---------- */
-  function workbook(model, opts){
-    opts = opts || {};
-    var XLSXlib = (typeof XLSX !== "undefined") ? XLSX : null;
-    if(!XLSXlib) throw new Error("The Excel library did not load. Check your connection and reload the page.");
+  function buildTables(r, activeMap){
+    var out = [];
+    TABLES.forEach(function(t){
+      var list = r[t[1]];
+      if(!Array.isArray(list) || !list.length) return;
+      var rows = list.map(function(rec){
+        return t[2].map(function(c){ return c[1] === "_active" ? (activeMap[rec.id] ? "Yes" : "") : rec[c[1]]; });
+      });
+      var keep = t[2].map(function(c, i){ return rows.some(function(x){ return raw(x[i]) !== ""; }); });
+      out.push({name: t[0], keys: t[2].filter(function(c, i){ return keep[i]; }).map(function(c){ return c[1]; }), columns: t[2].filter(function(c, i){ return keep[i]; }).map(function(c){ return c[0]; }), rows: rows.map(function(x){ return x.filter(function(v, i){ return keep[i]; }); })});
+    });
+    return out;
+  }
+
+  /* ---------- readiness checks ---------- */
+  function daysUntil(s){ var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || "")); if(!m) return null; var t = Date.UTC(+m[1], +m[2] - 1, +m[3]); var now = new Date(); var today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()); return Math.round((t - today) / 86400000); }
+  function checks(r, index, lic, mal){
+    var out = [];
+    function exp(label, s){
+      var n = daysUntil(s); if(n === null) return;
+      if(n < 0) out.push({level: "bad", text: label + " expired " + s.slice(0, 10)});
+      else if(n <= 60) out.push({level: "warn", text: label + " expires in " + n + " day" + (n === 1 ? "" : "s") + " (" + s.slice(0, 10) + ")"});
+    }
+    if(lic) exp("License " + (lic.state || "") + " " + (lic.number || ""), lic.expiration_date);
+    ["dea", "cds"].forEach(function(k){ var x = index["professionalid[" + k + "].expiration_date"]; if(x && x.v) exp(k.toUpperCase(), x.v); });
+    if(mal) exp("Malpractice policy " + (mal.policy_number || ""), mal.current_expiration_date);
+    var ti = arr(r.tax_ins)[0]; if(ti) exp("Group liability policy " + (ti.insurer_policy_number || ""), ti.expiration_date);
+    var cert = arr(r.certifications)[0]; if(cert && cert.expiration_date) exp("Board certification", cert.expiration_date);
+    var att = r.provider && r.provider.last_caqh_attestation_date;
+    if(att){ var a = -daysUntil(att); if(a > 120) out.push({level: "warn", text: "CAQH last attested " + a + " days ago (" + att + ")"}); }
+    var need = r.provider ? [["provider.individual_npi","Individual NPI"],["provider.caqh_id","CAQH ID"],["provider.nucc_taxonomy_code","Taxonomy code"],["provider.birth_date","Birth date"],["provider.ssn","SSN"]] : [];
+    need = need.concat([["taxentity.tax_id","Tax ID"],["taxentity.npi","Type 2 NPI"],["primary_practicelocation.mailing_street_address_1","Practice address"],["primary_practicelocation.phone_number","Practice phone"]]);
+    var missing = need.filter(function(n){ var x = index[n[0]]; return x && !raw(x.v); }).map(function(n){ return n[1]; });
+    if(r.provider && !lic) missing.push("State license for " + (r.er && r.er.state || "this state"));
+    if(missing.length) out.push({level: "warn", text: "Missing on the platform: " + missing.join(", ")});
+    if(!out.length) out.push({level: "ok", text: "No expired documents or missing key fields"});
+    return out;
+  }
+
+  /* All selectable fields, for matching form labels and roster columns before any enrollment is loaded */
+  var FIELDS = null;
+  function fieldList(){
+    if(FIELDS) return FIELDS;
+    var m = build({}, null, {all: true});
+    FIELDS = [];
+    m.sections.forEach(function(s){ s.rows.concat(s.hiddenRows).forEach(function(x){ FIELDS.push({id: x.id, key: x.key, field: x.field, sub: x.sub, section: x.section}); }); });
+    var count = {};
+    FIELDS.forEach(function(f){ var k = fieldLabel(f); count[k] = (count[k] || 0) + 1; });
+    FIELDS.forEach(function(f){ if(count[fieldLabel(f)] > 1) f.field += " (" + f.key.split(".").pop().replace(/_/g, " ") + ")"; });
+    return FIELDS;
+  }
+  function value(model, id, opts){
+    var x = model && model.index[id];
+    if(!x) return "";
+    return text(x, opts);
+  }
+  function fieldLabel(f){ return [f.section, f.sub, f.field].filter(Boolean).join(" › "); }
+
+  /* ---------- workbooks ---------- */
+  function lib(){ if(typeof XLSX === "undefined") throw new Error("The Excel library did not load. Check your connection and reload the page."); return XLSX; }
+  function cellText(key, v, opts){
+    var t = opts.format ? pretty(key, v) : raw(v);
+    if(opts.maskSecrets && SECRET[key] && t) t = mask(key, t);
+    return t;
+  }
+  function sheet(X, rows, widths){
+    var ws = X.utils.aoa_to_sheet(rows);
+    /* every cell as text so ZIP codes, NPIs and IDs keep leading zeros */
+    Object.keys(ws).forEach(function(a){ if(a.charAt(0) !== "!" && ws[a].t !== "s"){ ws[a].t = "s"; ws[a].v = ws[a].v === undefined || ws[a].v === null ? "" : String(ws[a].v); } });
+    ws["!cols"] = (widths || rows[0].map(function(h, i){ var w = String(h).length; rows.forEach(function(r){ w = Math.max(w, Math.min(String(r[i] == null ? "" : r[i]).length, 60)); }); return w + 2; })).map(function(w){ return {wch: w}; });
+    if(rows.length > 1) ws["!autofilter"] = {ref: X.utils.encode_range({s: {r: 0, c: 0}, e: {r: rows.length - 1, c: rows[0].length - 1}})};
+    return ws;
+  }
+  function add(X, wb, ws, name, used){ var n = name.replace(/[\\\/?*\[\]:]/g, " ").slice(0, 31), k = 2; while(used[n]) n = name.slice(0, 28) + " " + (k++); used[n] = 1; X.utils.book_append_sheet(wb, ws, n); }
+  function workbook(model, opts, extraSheets){
+    opts = opts || {}; var X = lib();
     var aoa = [["Field", "Value", "Section", "Group", "Platform Key"]];
-    model.sections.forEach(function(s){
-      s.rows.forEach(function(r){
-        if(opts.hideEmpty && !r.value) return;
-        var val = r.value;
-        if(opts.omitSecrets && EXCEL_SECRET[r.key] && val) val = mask(r.key, val);
-        aoa.push([r.field, val, s.name, r.sub, r.key]);
-      });
-    });
-    var wb = XLSXlib.utils.book_new();
-    var ws = XLSXlib.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{wch: 34}, {wch: 48}, {wch: 30}, {wch: 24}, {wch: 44}];
-    ws["!autofilter"] = {ref: "A1:E" + aoa.length};
-    XLSXlib.utils.book_append_sheet(wb, ws, "Application Data");
-    var used = {"Application Data": 1};
+    model.sections.forEach(function(s){ s.rows.forEach(function(x){
+      var t = cellText(x.key, x.v, opts);
+      if(opts.hideEmpty && !t) return;
+      aoa.push([x.field, t, s.name, x.sub, x.key]);
+    }); });
+    var wb = X.utils.book_new(), used = {};
+    (extraSheets || []).forEach(function(es){ add(X, wb, sheet(X, es.rows), es.name, used); });
+    add(X, wb, sheet(X, aoa, [34, 48, 30, 24, 44]), "Application Data", used);
     model.tables.forEach(function(t){
-      var rows = [t.columns].concat(t.rows);
-      var sh = XLSXlib.utils.aoa_to_sheet(rows);
-      sh["!cols"] = t.columns.map(function(c, i){
-        var w = Math.max(c.length, 10);
-        t.rows.forEach(function(r){ w = Math.max(w, Math.min(String(r[i] || "").length, 50)); });
-        return {wch: w + 2};
-      });
-      sh["!autofilter"] = {ref: XLSXlib.utils.encode_range({s: {r: 0, c: 0}, e: {r: rows.length - 1, c: t.columns.length - 1}})};
-      var n = t.name.slice(0, 31); var k = 2; while(used[n]){ n = t.name.slice(0, 28) + " " + (k++); }
-      used[n] = 1;
-      XLSXlib.utils.book_append_sheet(wb, sh, n);
+      add(X, wb, sheet(X, [t.columns].concat(t.rows.map(function(rw){ return rw.map(function(v, i){ return cellText(t.keys[i], v, opts); }); }))), t.name, used);
     });
-    wb.Props = {Title: model.filename.replace(/\.xlsx$/, ""), Subject: "Enrollment application data", CreatedDate: new Date()};
-    return XLSXlib.write(wb, {bookType: "xlsx", type: "array", compression: true});
+    wb.Props = {Title: model.filename.replace(/\.xlsx$/, ""), Subject: "Enrollment application data"};
+    return X.write(wb, {bookType: "xlsx", type: "array", compression: true});
+  }
+  function simpleBook(sheets){
+    var X = lib(), wb = X.utils.book_new(), used = {};
+    sheets.forEach(function(s){ add(X, wb, sheet(X, s.rows), s.name, used); });
+    return X.write(wb, {bookType: "xlsx", type: "array", compression: true});
   }
 
-  function looksLikeId(text){
-    var m = String(text || "").match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
-    return m ? m[0].toLowerCase() : null;
+  function idFrom(t){ var m = String(t || "").match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/); return m ? m[0].toLowerCase() : null; }
+  function idsFrom(t){ var seen = {}, out = []; (String(t || "").match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g) || []).forEach(function(x){ x = x.toLowerCase(); if(!seen[x]){ seen[x] = 1; out.push(x); } }); return out; }
+
+  return {build: build, workbook: workbook, simpleBook: simpleBook, text: text, raw: raw, pretty: pretty, mask: mask, value: value,
+    fieldList: fieldList, fieldLabel: fieldLabel, idFrom: idFrom, idsFrom: idsFrom, SENSITIVE: SENSITIVE, SECRET: SECRET, humanize: humanize};
+})();
+
+/* Matches the wording on payer forms and roster templates ("DOB", "Group TIN", "Service Address City") to platform fields. */
+var MATCH = (function(){
+  "use strict";
+  var L = "professionalid[license].", DEA = "professionalid[dea].", CDS = "professionalid[cds].", MCR = "professionalid[medicare].", MCD = "professionalid[medicaid].";
+  var PL = "primary_practicelocation.";
+
+  /* phrase -> field id. Longer phrases win, so specific wording beats generic wording. */
+  var PHRASES = [
+    ["provider name|practitioner name|physician name|clinician name|name of provider|name of practitioner|full name|provider full name|rendering provider name|applicant name|name of applicant", "provider.full_name"],
+    ["first name|provider first name|given name|fname|first", "provider.first_name"],
+    ["last name|provider last name|surname|family name|lname|last", "provider.last_name"],
+    ["middle name|middle initial|mi|middle", "provider.middle_name"],
+    ["suffix|name suffix", "provider.suffix"],
+    ["date of birth|dob|birth date|birthdate|d o b", "provider.birth_date"],
+    ["place of birth|birth city|city of birth", "provider.birth_city"],
+    ["birth state|state of birth", "provider.birth_state"],
+    ["birth country|country of birth", "provider.birth_country"],
+    ["ssn|social security|social security number|ss number|ss", "provider.ssn"],
+    ["gender|sex|gender identity", "provider.gender"],
+    ["race|ethnicity|race ethnicity", "provider.race"],
+    ["citizenship|us citizen|u s citizen|citizen", "provider.us_citizen"],
+    ["visa number", "provider.visa_number"], ["visa status|visa type", "provider.visa_status"],
+    ["languages|languages spoken|language|other languages|non english languages", "provider.languages"],
+    ["npi|individual npi|type 1 npi|npi type 1|type i npi|rendering npi|practitioner npi|provider npi|individual national provider identifier|national provider identifier|npi number|personal npi", "provider.individual_npi"],
+    ["group npi|type 2 npi|npi type 2|type ii npi|organization npi|organizational npi|billing npi|org npi|entity npi|group national provider identifier|pay to npi", "taxentity.npi"],
+    ["caqh|caqh id|caqh number|caqh provider id|proview id|caqh proview id", "provider.caqh_id"],
+    ["caqh attestation date|last attestation date|attestation date", "provider.last_caqh_attestation_date"],
+    ["taxonomy|taxonomy code|provider taxonomy|primary taxonomy|nucc taxonomy", "provider.nucc_taxonomy_code"],
+    ["specialty|primary specialty|provider specialty|specialty type|practice specialty", "provider.nucc_classification"],
+    ["specialization|sub specialty|subspecialty|secondary specialty", "provider.specialization"],
+    ["provider type|practitioner type|discipline|degree|credentials|professional designation|provider degree|title|license type provider", "provider.provider_type"],
+    ["upin", "provider.upin"],
+    ["ecfmg|ecfmg number", "provider.ecfmg_number"],
+    ["provider email|email|email address|e mail|practitioner email|provider email address", "provider.primary_email_address"],
+    ["provider phone|cell phone|mobile phone|mobile|cell", "provider.primary_phone"],
+    ["home phone", "provider.home_phone_number"],
+    ["home address|residential address|residence address|home street|home street address", "provider.home_street_address_1"],
+    ["home city", "provider.home_city"], ["home state", "provider.home_state"], ["home zip|home zip code|home postal code", "provider.home_zip_code"], ["home county", "provider.county"],
+    ["supervising physician|collaborating physician|supervising physician name|collaborative physician", "provider.supervising_or_collaborative_physician_name"],
+    ["supervising physician npi|collaborating physician npi", "provider.physician_individual_npi"],
+    ["license|license number|state license|state license number|license no|professional license|professional license number|medical license|medical license number|license id", L + "number"],
+    ["license state|state of license|issuing state|licensing state|license issuing state|state of licensure", L + "state"],
+    ["license expiration|license expiration date|license exp|license expiry|license exp date|expiration date of license", L + "expiration_date"],
+    ["license issue date|license issued|license effective date|date issued|license original issue date", L + "issue_date"],
+    ["license type|type of license", L + "license_type"],
+    ["dea|dea number|dea registration|dea registration number|dea no|dea certificate", DEA + "number"],
+    ["dea expiration|dea expiration date|dea exp|dea expiry", DEA + "expiration_date"],
+    ["dea state|dea issuing state", DEA + "state"], ["dea issue date", DEA + "issue_date"],
+    ["cds|cds number|controlled dangerous substance|controlled substance registration|state controlled substance|csr number|cds registration", CDS + "number"],
+    ["cds expiration|cds expiration date|cds exp", CDS + "expiration_date"],
+    ["medicare|medicare id|medicare number|ptan|medicare ptan|medicare provider number", MCR + "number"],
+    ["medicaid|medicaid id|medicaid number|medicaid provider number|medicaid provider id|state medicaid id", MCD + "number"],
+    ["site specific medicaid|site medicaid number|location medicaid", PL + "medicaid_id"],
+    ["malpractice carrier|malpractice insurance carrier|liability carrier|insurance carrier|carrier name|professional liability carrier|malpractice insurance|professional liability insurance carrier|carrier", "malpractice.name"],
+    ["malpractice policy number|policy number|liability policy number|policy no|policy", "malpractice.policy_number"],
+    ["malpractice exp|malpractice expiry|insurance exp|coi expiration|coi exp|liability expiration", "malpractice.current_expiration_date"],
+    ["hospital affiliation|hospital privileges|admitting hospital|primary hospital|hospital name|hospital", "hospital.hospital_name"],
+    ["admitting privileges|privilege status|privileges status", "hospital.privilege_status"],
+    ["malpractice effective date|policy effective date|coverage effective date|insurance effective date", "malpractice.current_effective_date"],
+    ["malpractice expiration|malpractice expiration date|policy expiration date|insurance expiration date|coverage expiration date|policy expiration", "malpractice.current_expiration_date"],
+    ["per occurrence|per occurrence limit|each occurrence|per claim|per claim limit|coverage per occurrence|occurrence limit", "malpractice.per_occurence_limit"],
+    ["aggregate|aggregate limit|annual aggregate|coverage aggregate", "malpractice.aggregate_limit"],
+    ["medical school|school name|school|education|graduate school|professional school|institution", "education.name"],
+    ["degree earned|degree received", "education.degree"],
+    ["graduation date|date of graduation|graduation year|completion date", "education.end_date"],
+    ["board certification|board certified|certifying board|board name", "certification.certifying_board_name"],
+    ["board certification expiration|board expiration", "certification.expiration_date"],
+    ["group name|legal name|legal business name|organization name|entity name|practice name|business name|group legal name|billing provider name|corporate name|name of group|legal entity name|pay to name|company name", "taxentity.legal_name"],
+    ["dba|doing business as|dba name|trade name", "taxentity.dba"],
+    ["tax id|tin|ein|fein|federal tax id|taxpayer identification number|tax identification number|federal tax identification number|employer identification number|group tin|tax id number|tin ein", "taxentity.tax_id"],
+    ["incorporation state|state of incorporation", "taxentity.incorporation_state"],
+    ["incorporation type|type of entity|entity type|organization type|business type|tax classification", "taxentity.incorporation_type"],
+    ["entity owner|owner name|owner", "taxentity.entity_owner"],
+    ["contact name|office contact|credentialing contact|contact person|office manager|primary contact", "taxentity.contact_name"],
+    ["contact title", "taxentity.contact_title"],
+    ["contact email|contact email address", "taxentity.contact_email"],
+    ["contact phone|contact phone number|contact telephone", "taxentity.contact_phone"],
+    ["contact fax", "taxentity.contact_fax"],
+    ["authorized signatory|signatory|contract signatory|authorized signer|authorized official", "taxentity.contract_signatory_name"],
+    ["billing representative|billing contact", "taxentity.billing_representative"],
+    ["account number|bank account number|checking account number|account no", "taxentity.account_number"],
+    ["routing number|aba number|aba routing number|transit number|bank routing number", "taxentity.routing_number"],
+    ["location name|practice location name|site name|office name|clinic name|facility name|service location name", PL + "name"],
+    ["location type|practice type|place of service|site type", PL + "practice_location_type"],
+    ["department|department name", PL + "department"],
+    ["effective date|enrollment effective date|participation effective date|plan effective date|network effective date|par effective date", "activeenrollment.effective_date"],
+    ["health plan provider id|payer provider id|plan provider id|health plan id|payer assigned id|plan assigned id|provider id with plan|payer id", "activeenrollment.new_health_plan_id"],
+    ["par status|participation status|network status|participating status", "activeenrollment.par_status"],
+    ["revalidation date|re validation date|revalidation due date", "activeenrollment.re_validation_date"],
+    ["health plan|payer|payer name|plan name|insurance plan", "enrollment.health_plan_name"],
+    ["line of business|lines of business|lob|lobs|product|products", "enrollment.lobs"],
+    ["request id|enrollment id", "enrollment.request_id"],
+    ["enrollment status|status", "enrollment.status"],
+    ["client|client name", "enrollment.client_name"]
+  ];
+  /* Address-type words resolve against the place the label talks about */
+  var ADDR = {
+    loc:   {street1: PL + "mailing_street_address_1", street2: PL + "mailing_street_address_2", city: PL + "mailing_city", state: PL + "mailing_state", zip: PL + "mailing_zip_code", county: PL + "practice_location_county", phone: PL + "phone_number", fax: PL + "fax_number", email: PL + "practice_email"},
+    home:  {street1: "provider.home_street_address_1", street2: "provider.home_street_address_2", city: "provider.home_city", state: "provider.home_state", zip: "provider.home_zip_code", county: "provider.county", phone: "provider.home_phone_number", fax: "provider.fax_number", email: "provider.personal_email", country: "provider.home_country"},
+    corr:  {street1: "provider.correspondence_street_address_1", street2: "provider.correspondence_street_address_2", city: "provider.correspondence_city", state: "provider.correspondence_state", zip: "provider.correspondence_postal_code", country: "provider.correspondence_country", phone: "provider.primary_phone", email: "provider.primary_email_address"},
+    mail:  {street1: "taxentity.mailing_street_address_1", street2: "taxentity.mailing_street_address_2", city: "taxentity.mailing_city", state: "taxentity.mailing_state", zip: "taxentity.mailing_zip_code", county: "taxentity.mailing_address_county", phone: "taxentity.contact_phone", fax: "taxentity.contact_fax", email: "taxentity.contact_email"},
+    bill:  {street1: "taxentity.billing_street_address_1", street2: "taxentity.billing_street_address_2", city: "taxentity.billing_city", state: "taxentity.billing_state", zip: "taxentity.billing_zip_code", county: "taxentity.billing_address_county", phone: "taxentity.contact_phone", fax: "taxentity.contact_fax", email: "taxentity.contact_email"},
+    grp:   null,
+    prov:  {phone: "provider.primary_phone", fax: "provider.fax_number", email: "provider.primary_email_address", state: "provider.primary_practice_state"},
+    lic:   {state: L + "state", number: L + "number"},
+    mal:   {street1: "malpractice.address_street_1", street2: "malpractice.address_street_2", city: "malpractice.city", state: "malpractice.state", zip: "malpractice.postal_code", phone: "malpractice.phone_number"},
+    edu:   {city: "education.city", state: "education.state", country: "education.country", street1: "education.address_street_1", zip: "education.postal_code"},
+    add1:  {street1: "additional_practicelocation[1].mailing_street_address_1", street2: "additional_practicelocation[1].mailing_street_address_2", city: "additional_practicelocation[1].mailing_city", state: "additional_practicelocation[1].mailing_state", zip: "additional_practicelocation[1].mailing_zip_code", phone: "additional_practicelocation[1].phone_number", fax: "additional_practicelocation[1].fax_number", email: "additional_practicelocation[1].practice_email"}
+  };
+  ADDR.grp = ADDR.mail;
+  /* generic one-word labels whose meaning depends on the heading they sit under */
+  var GENERIC = {
+    "name": {loc: PL + "name", grp: "taxentity.legal_name", mail: "taxentity.legal_name", bill: "taxentity.legal_name", mal: "malpractice.name", edu: "education.name", _: "provider.full_name"},
+    "npi": {grp: "taxentity.npi", mail: "taxentity.npi", bill: "taxentity.npi", _: "provider.individual_npi"},
+    "number": {lic: L + "number", mal: "malpractice.policy_number"},
+    "expiration date": {lic: L + "expiration_date", mal: "malpractice.current_expiration_date", _: L + "expiration_date"},
+    "effective date": {mal: "malpractice.current_effective_date", lic: L + "issue_date", _: "activeenrollment.effective_date"},
+    "issue date": {lic: L + "issue_date", _: L + "issue_date"},
+    "type": {lic: L + "license_type", loc: PL + "practice_location_type"},
+    "specialty": {grp: "taxentity.practice_specialty", loc: PL + "practice_speciality", _: "provider.nucc_classification"},
+    "start date": {edu: "education.start_date"}, "end date": {edu: "education.end_date"}, "degree": {edu: "education.degree", _: "provider.provider_type"}
+  };
+  var CTX_WORDS = [
+    ["bill", /\b(billing|bill to|pay to|payto|remit|remittance|payment address)\b/],
+    ["mail", /\b(mailing|mail to|correspondence address for group|group address|entity address|corporate address|organization address|business address)\b/],
+    ["corr", /\b(correspondence|provider mailing)\b/],
+    ["home", /\b(home|residence|residential|personal address)\b/],
+    ["grp", /\b(group|organization|organizational|entity|corporation|billing provider)\b/],
+    ["add1", /\b(secondary location|additional location|second location|other location|location 2)\b/],
+    ["loc", /\b(practice|service|office|clinic|site|physical|primary location|location|rendering)\b/],
+    ["lic", /\b(license|licensure)\b/],
+    ["mal", /\b(malpractice|liability|insurance carrier)\b/],
+    ["edu", /\b(school|education|university|college)\b/],
+    ["prov", /\b(provider|practitioner|physician|applicant|clinician)\b/]
+  ];
+  var ADDR_WORDS = [
+    ["street2", /\b(address line 2|address 2|street 2|suite|ste|unit|apt|line 2)\b/],
+    ["street1", /\b(street|address|address line 1|address 1|street address|line 1|addr)\b/],
+    ["zip", /\b(zip|zip code|postal|postal code|zipcode|zip 4)\b/],
+    ["county", /\bcounty\b/],
+    ["city", /\b(city|town)\b/],
+    ["state", /\bstate\b/],
+    ["country", /\bcountry\b/],
+    ["phone", /\b(phone|telephone|tel|phone number)\b/],
+    ["fax", /\bfax\b/],
+    ["email", /\b(email|e mail)\b/]
+  ];
+
+  function norm(s){
+    return String(s || "").toLowerCase().replace(/&/g, " and ").replace(/#/g, " number ").replace(/\bno\.\s*/g, " number ")
+      .replace(/[_\-\/\\.,:;()\[\]{}*?'"`’]+/g, " ").replace(/\b(please|enter|provide|list|your|the|of the|if applicable|optional|required)\b/g, " ")
+      .replace(/\s+/g, " ").trim();
+  }
+  var TABLE = null;
+  function table(){
+    if(TABLE) return TABLE;
+    TABLE = [];
+    PHRASES.forEach(function(p){ p[0].split("|").forEach(function(ph){ TABLE.push([norm(ph), p[1]]); }); });
+    TABLE.sort(function(a, b){ return b[0].length - a[0].length; });
+    return TABLE;
+  }
+  function has(hay, needle){ return (" " + hay + " ").indexOf(" " + needle + " ") >= 0; }
+  function ctxOf(n){ for(var i = 0; i < CTX_WORDS.length; i++) if(CTX_WORDS[i][1].test(n)) return CTX_WORDS[i][0]; return null; }
+
+  var FIELDS = null, BYID = null;
+  function fields(){ if(!FIELDS){ FIELDS = EX.fieldList(); BYID = {}; FIELDS.forEach(function(f){ BYID[f.id] = f; }); } return FIELDS; }
+
+  /* label -> {id, score, how}; ctx is the heading the label sits under (from a form), if any */
+  function match(label, ctx){
+    fields();
+    var n = norm(label);
+    if(!n || n.length < 2) return null;
+    var own = ctxOf(n), c = own || (ctx ? ctxOf(norm(ctx)) : null);
+    var g = GENERIC[n];
+    if(g){ var gid = (c && g[c]) || g._; if(gid && BYID[gid]) return {id: gid, score: c ? 0.85 : 0.7, how: "context"}; }
+    /* 1. address-style words: city, state, zip, phone... */
+    for(var i = 0; i < ADDR_WORDS.length; i++){
+      if(!ADDR_WORDS[i][1].test(n)) continue;
+      var part = ADDR_WORDS[i][0];
+      if(part === "state" && /\b(license|issuing|licensure)\b/.test(n)) break;
+      if(/\b(npi|tax|tin|dea|cds|caqh|medicaid|medicare|policy|birth|contact|signatory)\b/.test(n)) break;
+      var target = (c && ADDR[c] && ADDR[c][part]) || (part === "email" || part === "phone" || part === "fax" ? null : ADDR.loc[part]);
+      if(!target && (part === "phone" || part === "fax" || part === "email")) target = (/\b(office|practice|location|clinic)\b/.test(n) ? ADDR.loc : (c === "mail" || c === "bill" ? ADDR[c] : ADDR.prov))[part];
+      if(target && BYID[target]) return {id: target, score: own ? 0.95 : (c ? 0.85 : 0.7), how: "address"};
+    }
+    /* 2. known phrases */
+    var T = table();
+    for(var j = 0; j < T.length; j++){
+      var ph = T[j][0];
+      if(n === ph) return {id: T[j][1], score: 1, how: "exact"};
+    }
+    for(var k = 0; k < T.length; k++){
+      if(T[k][0].length >= 3 && has(n, T[k][0])) return {id: T[k][1], score: 0.8, how: "phrase"};
+    }
+    /* 3. platform field names */
+    var best = null, toks = n.split(" ").filter(function(t){ return t.length > 1; });
+    if(!toks.length) return null;
+    FIELDS.forEach(function(f){
+      var fn = norm(f.field), ft = fn.split(" ");
+      var hit = 0; toks.forEach(function(t){ if(ft.indexOf(t) >= 0) hit++; });
+      if(!hit) return;
+      var ctxT = norm(f.section + " " + f.sub).split(" ");
+      var bonus = 0; toks.forEach(function(t){ if(ctxT.indexOf(t) >= 0) bonus += 0.5; });
+      var s = (hit + bonus) / Math.max(toks.length, ft.length);
+      if(n === fn) s += 0.5;
+      if(/additional_practicelocation|professionalid\[(cds|medicare|medicaid)\]/.test(f.id)) s -= 0.15;
+      if(!best || s > best.score) best = {id: f.id, score: Math.min(s, 0.75), how: "name"};
+    });
+    return best && best.score >= 0.45 ? best : null;
   }
 
-  return {build: build, workbook: workbook, fmt: fmt, mask: mask, idFrom: looksLikeId, idOf: idOf, SENSITIVE: SENSITIVE, humanize: humanize};
+  /* Pull field labels out of OCR or PDF text lines, keeping section headings for context. */
+  function labelsFromLines(lines){
+    var out = [], seen = {}, heading = "";
+    lines.forEach(function(raw){
+      var line = String(raw || "").replace(/[_]{2,}|\.{3,}|\[\s*\]|☐|□|○/g, "  ").replace(/\s+$/, "");
+      if(!line.trim()) return;
+      var words = line.trim().split(/\s+/);
+      var letters = line.replace(/[^A-Za-z]/g, "");
+      if(letters.length < 2) return;
+      /* a heading: short, mostly capitals or ends with Information/Section/Details */
+      var isHead = words.length <= 7 && (letters === letters.toUpperCase() && letters.length > 5 || /\b(information|section|details|part [ivx\d]+)\b\s*:?$/i.test(line.trim())) && !/:\s*\S/.test(line);
+      if(isHead){ heading = line.trim().replace(/:$/, ""); out.push({heading: heading}); return; }
+      /* split "Name: ____  DOB: ____" style lines into separate labels */
+      var parts = line.split(/:|\s{3,}|\t/).map(function(s){ return s.trim(); }).filter(function(s){ return s && /[A-Za-z]/.test(s); });
+      parts.forEach(function(pt){
+        var w = pt.split(/\s+/);
+        if(w.length > 9 && !/[:?]$/.test(pt)) return;
+        if(/^(yes|no|n\/a|page \d+|\d+)$/i.test(pt)) return;
+        var label = pt.replace(/\s*[:?]\s*$/, "").replace(/^\d+[.)]\s*/, "").trim();
+        if(label.length < 2) return;
+        var key = (heading + "|" + label).toLowerCase();
+        if(seen[key]) return; seen[key] = 1;
+        out.push({label: label, heading: heading});
+      });
+    });
+    return out;
+  }
+
+  /* Standard roster columns most payers ask for */
+  var ROSTER_PRESET = [
+    ["Provider Last Name","provider.last_name"],["Provider First Name","provider.first_name"],["Middle Name","provider.middle_name"],["Provider Type","provider.provider_type"],
+    ["Gender","provider.gender"],["Date of Birth","provider.birth_date"],["SSN","provider.ssn"],["Individual NPI","provider.individual_npi"],["CAQH ID","provider.caqh_id"],
+    ["Taxonomy Code","provider.nucc_taxonomy_code"],["Specialty","provider.nucc_classification"],["Languages","provider.languages"],
+    ["License Number","professionalid[license].number"],["License State","professionalid[license].state"],["License Expiration Date","professionalid[license].expiration_date"],
+    ["DEA Number","professionalid[dea].number"],["DEA Expiration Date","professionalid[dea].expiration_date"],["Medicare ID","professionalid[medicare].number"],["Medicaid ID","professionalid[medicaid].number"],
+    ["Group Legal Name","taxentity.legal_name"],["DBA","taxentity.dba"],["Tax ID","taxentity.tax_id"],["Group NPI","taxentity.npi"],
+    ["Practice Location Name","primary_practicelocation.name"],["Practice Address","primary_practicelocation.mailing_street_address_1"],["Practice Address 2","primary_practicelocation.mailing_street_address_2"],
+    ["Practice City","primary_practicelocation.mailing_city"],["Practice State","primary_practicelocation.mailing_state"],["Practice Zip","primary_practicelocation.mailing_zip_code"],
+    ["Practice Phone","primary_practicelocation.phone_number"],["Practice Fax","primary_practicelocation.fax_number"],
+    ["Billing Address","taxentity.billing_street_address_1"],["Billing City","taxentity.billing_city"],["Billing State","taxentity.billing_state"],["Billing Zip","taxentity.billing_zip_code"],
+    ["Malpractice Carrier","malpractice.name"],["Malpractice Policy Number","malpractice.policy_number"],["Malpractice Expiration","malpractice.current_expiration_date"],
+    ["Health Plan","enrollment.health_plan_name"],["Health Plan Provider ID","activeenrollment.new_health_plan_id"],["Effective Date","activeenrollment.effective_date"],["Par Status","activeenrollment.par_status"],["Lines of Business","enrollment.lobs"],["Request ID","enrollment.request_id"],["Enrollment Status","enrollment.status"]
+  ];
+
+  /* Multi-field search: "npi, dob; tax id" -> one entry per term with the rows it hits */
+  function terms(q){ return String(q || "").split(/[,;\n|]+/).map(function(t){ return t.trim(); }).filter(Boolean); }
+  function search(model, q){
+    var out = [];
+    terms(q).forEach(function(t){
+      var n = norm(t), rows = [];
+      var m = match(t, null);
+      if(m && model.index[m.id]) rows.push(model.index[m.id]);
+      model.sections.forEach(function(s){ s.rows.forEach(function(x){
+        if(rows.indexOf(x) >= 0) return;
+        var hay = norm(x.field + " " + x.sub + " " + x.section + " " + x.key) + " " + EX.raw(x.v).toLowerCase();
+        if(n && (has(norm(x.field), n) || hay.indexOf(n) >= 0 || EX.raw(x.v).toLowerCase().indexOf(t.toLowerCase()) >= 0)) rows.push(x);
+      }); });
+      out.push({term: t, rows: rows});
+    });
+    return out;
+  }
+
+  return {match: match, labelsFromLines: labelsFromLines, ROSTER_PRESET: ROSTER_PRESET, terms: terms, search: search, norm: norm, fields: fields, byId: function(id){ fields(); return BYID[id]; }};
+})();
+
+/* Reads payer forms: fillable PDF fields and PDF text directly, scanned pages and images through an OCR engine.
+   A build supplies OCR_ENGINE = {name, ready(): Promise<bool>, recognize(blobs, progress): Promise<{items?|lines?}>, mapLabels?(labels): Promise<[id|null]>} */
+var OCR = (function(){
+  "use strict";
+  var PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+  var loaded = {};
+  function script(src){
+    if(loaded[src]) return loaded[src];
+    return (loaded[src] = new Promise(function(res, rej){
+      var s = document.createElement("script"); s.src = src; s.async = true;
+      s.onload = function(){ res(); }; s.onerror = function(){ delete loaded[src]; rej(new Error("Could not load " + src.split("/").slice(-2).join("/"))); };
+      document.head.appendChild(s);
+    }));
+  }
+  /* pdf.js runs on the page's own thread: loading the worker as a plain script makes it skip the Web Worker */
+  function pdfLib(){
+    return script(PDFJS + "pdf.min.js").then(function(){ return script(PDFJS + "pdf.worker.min.js"); }).then(function(){
+      var lib = window.pdfjsLib || window["pdfjs-dist/build/pdf"];
+      if(!lib) throw new Error("The PDF reader did not load.");
+      try { lib.GlobalWorkerOptions.workerSrc = PDFJS + "pdf.worker.min.js"; } catch(e){}
+      return lib;
+    });
+  }
+  function nice(name){ return String(name || "").replace(/\[\d+\]/g, "").split(".").pop().replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_\-]+/g, " ").replace(/\s+/g, " ").trim(); }
+
+  function readPdf(file, progress){
+    return Promise.all([pdfLib(), file.arrayBuffer()]).then(function(v){
+      var lib = v[0];
+      return lib.getDocument({data: new Uint8Array(v[1]), isEvalSupported: false, disableFontFace: true, useSystemFonts: true}).promise;
+    }).then(function(doc){
+      var n = Math.min(doc.numPages, 30), lines = [], fields = [], scans = [];
+      var chain = Promise.resolve();
+      for(var i = 1; i <= n; i++) (function(i){
+        chain = chain.then(function(){
+          progress("Reading page " + i + " of " + n + "…");
+          return doc.getPage(i).then(function(page){
+            return Promise.all([page.getTextContent(), page.getAnnotations({intent: "display"}).catch(function(){ return []; })]).then(function(r){
+              /* text lines: group items by baseline */
+              var rows = {}, chars = 0;
+              r[0].items.forEach(function(it){
+                if(!it.str || !it.str.trim()) return;
+                chars += it.str.trim().length;
+                var y = Math.round(it.transform[5] / 3) * 3;
+                (rows[y] = rows[y] || []).push({x: it.transform[4], s: it.str, w: it.width || 0});
+              });
+              Object.keys(rows).map(Number).sort(function(a, b){ return b - a; }).forEach(function(y){
+                var parts = rows[y].sort(function(a, b){ return a.x - b.x; }), line = "", lastEnd = null;
+                parts.forEach(function(p){ if(lastEnd !== null) line += (p.x - lastEnd > 18 ? "    " : (p.x - lastEnd > 1 ? " " : "")); line += p.s; lastEnd = p.x + p.w; });
+                lines.push(line);
+              });
+              /* fillable fields */
+              r[1].filter(function(a){ return a.subtype === "Widget" && a.fieldName; })
+                .sort(function(a, b){ return (b.rect[3] - a.rect[3]) || (a.rect[0] - b.rect[0]); })
+                .forEach(function(a){
+                  if(a.fieldType === "Btn" && a.pushButton) return;
+                  fields.push({label: a.alternativeText || nice(a.fieldName), pdfField: a.fieldName, page: i, kind: a.fieldType === "Btn" ? (a.radioButton ? "radio" : "checkbox") : "text"});
+                });
+              /* a page with almost no text is a scan: render it for OCR */
+              if(chars < 40){
+                var vp = page.getViewport({scale: 2});
+                var c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height;
+                return page.render({canvasContext: c.getContext("2d"), viewport: vp}).promise.then(function(){
+                  return new Promise(function(res){ c.toBlob(function(b){ if(b) scans.push(b); res(); }, "image/jpeg", 0.85); });
+                });
+              }
+            });
+          });
+        });
+      })(i);
+      return chain.then(function(){ return {lines: lines, fields: fields, scans: scans, pages: doc.numPages}; });
+    });
+  }
+
+  /* Dedupe fillable fields that share a name (radio groups, repeated widgets) */
+  function uniqueFields(fields){
+    var seen = {};
+    return fields.filter(function(f){ var k = f.pdfField; if(seen[k]) return false; seen[k] = 1; return true; });
+  }
+
+  /* files -> [{label, heading, pdfField?, id?, how?}] in form order */
+  function read(files, progress){
+    var items = [], blobs = [], textLines = [];
+    var chain = Promise.resolve();
+    Array.prototype.forEach.call(files, function(f){
+      chain = chain.then(function(){
+        if(/pdf$/i.test(f.type) || /\.pdf$/i.test(f.name)){
+          return readPdf(f, progress).then(function(r){
+            var uf = uniqueFields(r.fields);
+            if(uf.length){ items = items.concat(uf.map(function(x){ return {label: x.label, heading: "", pdfField: x.pdfField, kind: x.kind}; })); }
+            else textLines = textLines.concat(r.lines);
+            blobs = blobs.concat(r.scans);
+          });
+        }
+        if(/^image\//.test(f.type)){ blobs.push(f); return; }
+        throw new Error(f.name + " is not a PDF or image.");
+      });
+    });
+    return chain.then(function(){
+      if(textLines.length) items = items.concat(MATCH.labelsFromLines(textLines));
+      if(!blobs.length) return items;
+      return Promise.resolve(OCR_ENGINE.ready()).then(function(ok){
+        if(!ok) throw new Error(OCR_ENGINE.unavailable || "Image reading is not available here. Type the labels instead.");
+        progress("Reading " + blobs.length + " image" + (blobs.length === 1 ? "" : "s") + " with " + OCR_ENGINE.name + "…");
+        return OCR_ENGINE.recognize(blobs, progress).then(function(res){
+          if(res.items) return items.concat(res.items);
+          return items.concat(MATCH.labelsFromLines(res.lines || []));
+        });
+      });
+    }).then(function(list){
+      /* match anything not matched yet; the engine may improve the matches */
+      var need = list.filter(function(x){ return x.label && !x.id; });
+      var local = function(){ list.forEach(function(x){ if(x.label && !x.id){ var m = MATCH.match(x.label, x.heading); if(m){ x.id = m.id; x.how = m.how; x.score = m.score; } } }); return list; };
+      if(need.length && OCR_ENGINE.mapLabels){
+        progress("Matching " + need.length + " labels to platform fields…");
+        return OCR_ENGINE.mapLabels(need).then(function(ids){
+          need.forEach(function(x, i){ if(ids[i] && MATCH.byId(ids[i])){ x.id = ids[i]; x.how = "claude"; x.score = 0.9; } });
+          return local();
+        }, function(){ return local(); });
+      }
+      return local();
+    });
+  }
+
+  return {read: read, script: script};
+})();
+
+/* OCR engine for the standalone and Apps Script builds: Tesseract runs in the browser, nothing leaves the device. */
+var OCR_ENGINE = (function(){
+  "use strict";
+  var SRC = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+  function ready(){ return OCR.script(SRC).then(function(){ return !!window.Tesseract; }, function(){ return false; }); }
+  function recognize(blobs, progress){
+    var lines = [], worker;
+    return Tesseract.createWorker("eng", 1, {logger: function(m){ if(m && m.status === "recognizing text") progress("Reading text… " + Math.round((m.progress || 0) * 100) + "%"); }})
+      .then(function(w){ worker = w;
+        return blobs.reduce(function(p, b, i){ return p.then(function(){ progress("Reading image " + (i + 1) + " of " + blobs.length + "…"); return worker.recognize(b).then(function(r){ lines = lines.concat(String(r.data.text || "").split(/\n/)); }); }); }, Promise.resolve());
+      })
+      .then(function(){ return worker.terminate(); })
+      .then(function(){ return {lines: lines}; }, function(e){ try { worker && worker.terminate(); } catch(x){} throw {userMessage: "The OCR engine could not read the image" + (e && e.message ? ": " + e.message : ".")}; });
+  }
+  return {name: "Tesseract OCR", ready: ready, recognize: recognize, unavailable: "Could not load the OCR engine. Check your internet connection, or type the labels instead."};
 })();
 
 /* Loads one enrollment from the Assured REST API (the same endpoints the platform UI uses).
@@ -546,6 +1199,14 @@ function makeRestLoader(httpMany){
   function idOf(x){ return x && typeof x === "object" ? x.id : x; }
   function list(r){ if(!r || r.status !== 200 || !r.json) return []; var j = r.json; return Array.isArray(j) ? j : (Array.isArray(j.results) ? j.results : []); }
   function obj(r){ return r && r.status === 200 && r.json && typeof r.json === "object" ? (r.json.data && !r.json.id && typeof r.json.data === "object" && !Array.isArray(r.json.data) ? r.json.data : r.json) : null; }
+  /* The full record wins; the slim copy in the overview fills anything the full record did not return */
+  function merge(slim, full){
+    if(!full) return slim && typeof slim === "object" ? slim : null;
+    if(!slim || typeof slim !== "object") return full;
+    var out = Object.assign({}, slim);
+    Object.keys(full).forEach(function(k){ var v = full[k]; if(v !== null && v !== undefined && v !== "" || !(k in out)) out[k] = v; });
+    return out;
+  }
   function authFail(rs){ return rs.some(function(r){ return r && (r.status === 401); }); }
 
   return function load(id, progress){
@@ -557,8 +1218,8 @@ function makeRestLoader(httpMany){
       P + "/payer-enrollment/enrollment-request-active-professional-id/" + id,
       P + "/payer-enrollment/pdf-template-attribute/"
     ]).then(function(rs){
-      if(authFail(rs)) throw {userMessage: "The platform rejected your access token (401). Sign in again or paste a fresh token in Connection settings."};
-      var detail = obj(rs[0]), ov = obj(rs[1]) || {}, active = obj(rs[2]) || {}, cat = rs[3] && rs[3].status === 200 ? rs[3].json : null;
+      if(authFail(rs)) throw {userMessage: "Your session ended (401). Sign in again to continue."};
+      var detail = obj(rs[0]), ov = obj(rs[1]) || {}, active = obj(rs[2]) || (ov.active_professional_id && typeof ov.active_professional_id === "object" ? ov.active_professional_id : {}), cat = rs[3] && rs[3].status === 200 ? rs[3].json : null;
       if(!detail){
         var st = rs[0] ? rs[0].status : 0;
         if(st === 404) throw {userMessage: "No enrollment was found for " + id + "."};
@@ -576,7 +1237,8 @@ function makeRestLoader(httpMany){
         taxId ? P + "/clients/tax-entities/" + taxId + "/" : null,
         locId ? P + "/clients/practice-locations/" + locId + "/" : null,
         hpId ? P + "/payer-enrollment/health-plan/" + hpId + "/" : null,
-        taxId ? P + "/clients/tax-entity-liability-insurance/?limit=100&tax_entity=" + taxId : null
+        taxId ? P + "/clients/tax-entity-liability-insurance/?limit=100&tax_entity=" + taxId : null,
+        hpId ? P + "/payer-enrollment/active-enrollment-list/?limit=100&health_plan_ids=" + hpId + (userId ? "&provider_ids=" + userId : (taxId ? "&tax_entity=" + taxId : "")) : null
       ];
       var listPaths = who ? [
         P + "/users/provider-professional-ids/?limit=200&provider=" + who,
@@ -592,13 +1254,14 @@ function makeRestLoader(httpMany){
       progress("Pulling provider, tax entity, locations and licenses…");
       var all = paths.concat(listPaths, otherPaths);
       return httpMany(all.map(function(p){ return p || ""; })).then(function(r2){
-        if(authFail(r2)) throw {userMessage: "The platform rejected your access token (401). Sign in again or paste a fresh token in Connection settings."};
+        if(authFail(r2)) throw {userMessage: "Your session ended (401). Sign in again to continue."};
         var raw = {id: id, detail: detail, er: Object.assign({}, detail, {id: detail.id || id}), catalog: cat};
-        raw.tax = obj(r2[0]); raw.loc = obj(r2[1]); raw.hp = obj(r2[2]); raw.tax_ins = list(r2[3]);
-        var L = r2.slice(4, 4 + listPaths.length);
+        raw.tax = merge(ov.tax_entity, obj(r2[0])); raw.loc = merge(ov.primary_practice_location, obj(r2[1])); raw.hp = obj(r2[2]); raw.tax_ins = list(r2[3]);
+        raw.active_enr = list(r2[4]).filter(function(a){ return idOf(a.enrollment_request) === id; }).sort(function(a, b){ return (b.is_active ? 1 : 0) - (a.is_active ? 1 : 0); })[0] || null;
+        var L = r2.slice(5, 5 + listPaths.length);
         raw.prof_ids = list(L[0]); raw.education = list(L[1]); raw.training = list(L[2]); raw.employment = list(L[3]);
         raw.malpractice = list(L[4]); raw.certifications = list(L[5]); raw.hospitals = list(L[6]); raw.refs = list(L[7]);
-        raw.other_locs = r2.slice(4 + listPaths.length).map(function(r, i){ return obj(r) || others[i]; }).filter(function(x){ return x && typeof x === "object"; });
+        raw.other_locs = r2.slice(5 + listPaths.length).map(function(r, i){ return merge(others[i], obj(r)); }).filter(function(x){ return x && typeof x === "object"; });
         raw.group_providers = (detail.group_providers || []).map(function(g){ return typeof g === "object" ? {name: g.full_name || g.name} : {name: String(g)}; });
         if(!raw.tax && taxId) partial.push("tax entity");
         if(!raw.hp && hpId) partial.push("health plan");
@@ -636,265 +1299,669 @@ function makeRestLoader(httpMany){
   };
 }
 
-/* Data source for the standalone page (GitHub Pages or any web host): calls the Assured REST API from the browser. */
+/* Sign-in for the builds that call the platform API directly: Assured email and password, once per device. */
+var AUTH = (function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var backend = null;
+
+  function serverMessage(j){
+    if(!j) return "";
+    if(typeof j === "string") return j.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
+    var e = j.errors && j.errors[0];
+    var m = (e && (e.detail || e.message)) || j.detail || j.msg || j.message || j.error || (j.non_field_errors && j.non_field_errors[0]) || "";
+    if(!m && typeof j === "object"){ var k = Object.keys(j).filter(function(x){ return Array.isArray(j[x]) && typeof j[x][0] === "string"; })[0]; if(k) m = k + ": " + j[k][0]; }
+    return String(m).replace(/\.+$/, "").slice(0, 300);
+  }
+  function tokens(j){
+    if(!j || typeof j !== "object") return null;
+    var jwt = (j.data && j.data.jwt) || j.jwt || (j.access ? j : null);
+    if(!jwt) return null;
+    if(typeof jwt === "string") return {access: jwt, refresh: ""};
+    return jwt.access ? {access: jwt.access, refresh: jwt.refresh || ""} : null;
+  }
+  function user(j, email){
+    var d = (j && j.data) || {};
+    return {name: [d.first_name, d.last_name].filter(Boolean).join(" ") || email, email: d.email || email};
+  }
+  /* The platform asks for a one-time code on accounts with two-step sign-in */
+  function wantsCode(j){
+    var flag = j && typeof j === "object" && (j.mfa_required || j.otp_required || (j.data && (j.data.mfa_required || j.data.otp_required || j.data.mfa_enabled)));
+    return !!flag || /\b(otp|one[- ]time|verification code|mfa|two[- ]?factor|authenticator|code sent|enter the code)\b/i.test(serverMessage(j));
+  }
+  /* Login body: email and password, plus the code under the names two-step sign-in commonly uses */
+  function body(email, pass, code){
+    var b = {email: String(email).trim(), password: pass};
+    if(code){ code = String(code).trim(); b.otp = code; b.code = code; b.mfa_code = code; b.otp_code = code; b.one_time_code = code; }
+    return b;
+  }
+  /* Read a login response: {ok, tokens, user} or {needCode, message} or {error} */
+  function readLogin(status, j, email){
+    var t = tokens(j);
+    if(status >= 200 && status < 300 && t) return {ok: true, tokens: t, user: user(j, email)};
+    if(wantsCode(j)) return {needCode: true, message: serverMessage(j) || "Enter the verification code sent to you."};
+    var m = serverMessage(j);
+    if(status === 0) return {error: "Could not reach the Assured platform from this page. Check your connection" + (location.protocol === "https:" && !/script\.google/.test(location.host) ? ", or use the Apps Script version if this keeps happening" : "") + "."};
+    return {error: (m || "Sign-in failed") + (status ? " (" + status + ")" : "") + "."};
+  }
+
+  var BOOKMARKLET = "javascript:(function(){var f=[];function d(v){if(!v)return;var m=String(v).match(/eyJ[\\w-]+\\.[\\w-]+\\.[\\w-]+/g);if(m)f=f.concat(m);}" +
+    "function s(st){try{for(var i=0;i<st.length;i++)d(st.getItem(st.key(i)));}catch(e){}}s(window.localStorage);s(window.sessionStorage);" +
+    "try{document.cookie.split(';').forEach(function(c){try{d(decodeURIComponent(c));}catch(e){d(c);}});}catch(e){}" +
+    "function c(t){try{var p=t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');while(p.length&3)p+='=';return JSON.parse(atob(p));}catch(e){return null;}}" +
+    "var a=null,r=null;f.forEach(function(t){var x=c(t);if(!x)return;var e=x.exp||0;if(x.token_type==='refresh'){if(!r||e>r.e)r={t:t,e:e};}else{if(!a||e>a.e)a={t:t,e:e};}});" +
+    "if(!a){alert('No Assured sign-in token was found here. Open platform.withassured.com, sign in, then click this bookmark again.');return;}" +
+    "var o=JSON.stringify({access:a.t,refresh:r?r.t:''});" +
+    "function done(){alert('Your Assured token is copied. Go back to Enrollment Export and click Continue. Treat it like a password.');}" +
+    "if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(o).then(done,function(){prompt('Copy your Assured token:',o);});}else{prompt('Copy your Assured token:',o);}})();";
+  /* Accepts what the bookmark copies ({"access":"...","refresh":"..."}), "Bearer <token>" or a bare token */
+  function parseSession(text){
+    var t = String(text || "").trim();
+    if(!t) return null;
+    if(t.charAt(0) === "{"){ try { var j = JSON.parse(t); var a = j.access || (j.jwt && j.jwt.access); if(a) return {access: String(a), refresh: String(j.refresh || (j.jwt && j.jwt.refresh) || "")}; } catch(e){} }
+    t = t.replace(/^Authorization:\s*/i, "").replace(/^(Bearer|JWT)\s+/i, "").replace(/^["']|["']$/g, "");
+    return /^[\w-]+\.[\w-]+\.[\w-]+$/.test(t) ? {access: t, refresh: ""} : null;
+  }
+  function noPassword(msg){ return /password (is )?not set|no password|password has not been set|set (a|your) password/i.test(msg || ""); }
+  function help(t, err){ var h = $("helpMsg"); h.textContent = t || ""; h.className = "note" + (err ? " error" : ""); }
+
+  function showLogin(message, err){
+    $("login").hidden = false; $("app").hidden = true; $("account").hidden = true; $("lookup").hidden = true; $("dl").hidden = true;
+    var lm = $("loginMsg"); lm.textContent = message || ""; lm.className = "note" + (err ? " error" : "");
+    if(noPassword(message)){ $("noPass").hidden = false; $("showHelp").hidden = true; lm.textContent = "This account has no platform password yet. Use one of the options below."; }
+    setTimeout(function(){ ($("loginEmail").value ? $("loginPass") : $("loginEmail")).focus(); }, 30);
+  }
+  function showApp(u){
+    $("login").hidden = true; $("app").hidden = false; $("lookup").hidden = false; $("dl").hidden = false;
+    var a = $("account"); a.hidden = false; a.replaceChildren();
+    var n = document.createElement("span"); n.className = "who"; n.textContent = u && (u.name || u.email) || "Signed in"; n.title = u && u.email || "";
+    var out = document.createElement("button"); out.type = "button"; out.className = "link"; out.textContent = "Sign out";
+    out.addEventListener("click", function(){ Promise.resolve(backend.signOut()).then(function(){ $("loginPass").value = ""; showLogin("You are signed out."); }); });
+    a.append(n, out);
+  }
+
+  function init(b){
+    backend = b;
+    $("loginForm").addEventListener("submit", function(ev){
+      ev.preventDefault();
+      var email = $("loginEmail").value, pass = $("loginPass").value, code = $("codeWrap").hidden ? "" : $("loginCode").value;
+      if(!email.trim() || !pass){ showLogin("Enter your email and password.", true); return; }
+      var btn = $("loginBtn"); btn.disabled = true; $("loginMsg").className = "note"; $("loginMsg").textContent = "Signing in…";
+      Promise.resolve(backend.signIn(email, pass, code, $("keep").checked)).then(function(r){
+        if(r && r.needCode){ $("codeWrap").hidden = false; $("loginCode").focus(); $("loginMsg").className = "note"; $("loginMsg").textContent = r.message; return; }
+        $("codeWrap").hidden = true; $("loginCode").value = ""; $("loginPass").value = "";
+        showApp(r && r.user);
+      }, function(e){ showLogin((e && (e.userMessage || e.message)) || "Sign-in failed.", true); })
+        .then(function(){ btn.disabled = false; });
+    });
+    $("bmLink").href = BOOKMARKLET;
+    $("bmLink").addEventListener("click", function(e){ e.preventDefault(); help("Drag the Assured sign-in button to your bookmarks bar, then click it on the platform."); });
+    $("showHelp").addEventListener("click", function(){ $("noPass").hidden = false; $("showHelp").hidden = true; });
+    $("sendReset").addEventListener("click", function(){
+      var email = $("loginEmail").value.trim();
+      if(!email){ help("Type your email in the Email box above first.", true); $("loginEmail").focus(); return; }
+      help("Sending…");
+      Promise.resolve(backend.resetPassword(email)).then(function(){ help("Check " + email + " for the set-password email from the platform. After you set it, sign in above."); }, function(e){ help((e && (e.userMessage || e.message)) || "The email could not be sent.", true); });
+    });
+    var pasted = null;
+    $("sessionPaste").addEventListener("input", function(){ clearTimeout(pasted); pasted = setTimeout(function(){ if(parseSession($("sessionPaste").value)) $("useSession").click(); }, 150); });
+    $("useSession").addEventListener("click", function(){
+      var go = function(text){
+        var t = parseSession(text);
+        if(!t){ help("Nothing to use yet. Click the Assured sign-in bookmark on the platform first, then paste here.", true); $("sessionPaste").focus(); return; }
+        help("Checking…");
+        Promise.resolve(backend.useSession(t, $("keep").checked)).then(function(r){ $("sessionPaste").value = ""; showApp(r && r.user); }, function(e){ help((e && (e.userMessage || e.message)) || "That sign-in did not work. Click the bookmark on the platform again.", true); });
+      };
+      var typed = $("sessionPaste").value;
+      if(typed.trim()) return go(typed);
+      try { if(navigator.clipboard && navigator.clipboard.readText){ navigator.clipboard.readText().then(go, function(){ go(""); }); return; } } catch(e){}
+      go("");
+    });
+    Promise.resolve(backend.state()).then(function(s){ if(s && s.signedIn) showApp(s.user); else showLogin(""); }, function(){ showLogin(""); });
+  }
+  return {init: init, showLogin: showLogin, readLogin: readLogin, body: body, serverMessage: serverMessage, tokens: tokens, BOOKMARKLET: BOOKMARKLET};
+})();
+
+/* Data source for the standalone page (GitHub Pages or any web host): signs in with Assured email and password, then calls the platform API from the browser. */
 var SOURCE = (function(){
   "use strict";
-  var DEFAULT_BASE = "https://prod-backend.withassured.com";
-  var $ = function(id){ return document.getElementById(id); };
-  function store(){ try { return localStorage.getItem("assuredRemember") === "1" ? localStorage : sessionStorage; } catch(e){ return null; } }
-  function get(k){ try { return (localStorage.getItem(k) || sessionStorage.getItem(k) || ""); } catch(e){ return ""; } }
-  function put(k, v){ try { var s = store(); if(s) s.setItem(k, v); } catch(e){} }
-  function drop(k){ try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch(e){} }
-  var state = {base: get("assuredBase") || DEFAULT_BASE, token: get("assuredToken")};
+  var BASE = "https://prod-backend.withassured.com"; /* Assured platform API */
+  var K = "assuredSession";
+  function readSession(){ try { return JSON.parse(localStorage.getItem(K) || sessionStorage.getItem(K) || "null"); } catch(e){ return null; } }
+  function writeSession(s, keep){
+    try { localStorage.removeItem(K); sessionStorage.removeItem(K); if(s) (keep ? localStorage : sessionStorage).setItem(K, JSON.stringify(s)); } catch(e){}
+  }
+  var sess = readSession();
 
-  function base(){ return (state.base || DEFAULT_BASE).replace(/\/+$/, ""); }
-  function connState(t, err){ var c = $("connState"); c.textContent = t; c.style.color = err ? "var(--err)" : ""; }
+  function post(path, data, auth){
+    var h = {"Content-Type": "application/json", "Accept": "application/json"};
+    if(auth) h.Authorization = "Bearer " + auth;
+    return fetch(BASE + path, {method: "POST", headers: h, body: JSON.stringify(data)}).then(function(r){
+      return r.text().then(function(t){ var j = null; try { j = t ? JSON.parse(t) : null; } catch(e){ j = t; } return {status: r.status, json: j}; });
+    }, function(){ return {status: 0, json: null}; });
+  }
+  function get(p){
+    return fetch(BASE + p, {headers: {"Authorization": "Bearer " + sess.access, "Accept": "application/json"}}).then(function(r){
+      return r.text().then(function(t){ var j = null; try { j = t ? JSON.parse(t) : null; } catch(e){} return {status: r.status, json: j}; });
+    }, function(){ return {status: 0, json: null, network: true}; });
+  }
+  var renewing = null;
+  function renew(){
+    if(!sess || !sess.refresh) return Promise.resolve(false);
+    return renewing || (renewing = post("/api/v1/users/token/refresh/", {refresh: sess.refresh}, sess.access).then(function(r){
+      renewing = null;
+      if(r.status === 200 && r.json && r.json.access){ sess.access = r.json.access; if(r.json.refresh) sess.refresh = r.json.refresh; writeSession(sess, sess.keep); return true; }
+      return false;
+    }));
+  }
+  function ended(){ writeSession(null); sess = null; AUTH.showLogin("Your session ended. Sign in again to continue.", true); return {userMessage: "Your session ended. Sign in again to continue."}; }
 
   function httpMany(paths){
-    if(!state.token) return Promise.reject({userMessage: "Add your platform access token in Connection settings first."});
-    return Promise.all(paths.map(function(p){
-      if(!p) return null;
-      return fetch(base() + p, {headers: {"Authorization": "Bearer " + state.token, "Accept": "application/json"}}).then(function(r){
-        return r.text().then(function(t){ var j = null; try { j = t ? JSON.parse(t) : null; } catch(e){} return {status: r.status, json: j}; });
-      }, function(){ return {status: 0, json: null, network: true}; });
-    })).then(function(rs){
-      if(rs.length && rs.every(function(r){ return !r || r.network; }) && rs.some(Boolean)){
-        throw {userMessage: "The browser could not reach " + base() + ". This usually means the platform does not allow calls from this website (CORS). Use the Google Apps Script version, or ask engineering to allow this site's address."};
-      }
+    if(!sess || !sess.access) return Promise.reject(ended());
+    return Promise.all(paths.map(function(p){ return p ? get(p) : null; })).then(function(rs){
+      if(!rs.some(function(r){ return r && r.status === 401; })) return rs;
+      return renew().then(function(ok){
+        if(!ok) throw ended();
+        return Promise.all(paths.map(function(p, i){ return p && rs[i] && rs[i].status === 401 ? get(p) : rs[i]; }));
+      });
+    }).then(function(rs){
+      var real = rs.filter(Boolean);
+      if(real.length && real.every(function(r){ return r.network; })) throw {userMessage: "Could not reach the Assured platform from this page. Check your connection. If it keeps happening, the platform may not accept calls from this website address; use the Apps Script version."};
       return rs;
     });
   }
 
-  function signIn(){
-    var email = $("loginEmail").value.trim(), pass = $("loginPass").value;
-    if(!email || !pass){ connState("Enter your platform email and password.", true); return; }
-    connState("Signing in…");
-    fetch(base() + "/api/v1/users/login/", {method: "POST", headers: {"Content-Type": "application/json", "Accept": "application/json"}, body: JSON.stringify({email: email, password: pass})})
-      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ return {ok: r.ok, status: r.status, j: j}; }); })
-      .then(function(res){
-        var jwt = res.j && res.j.data && res.j.data.jwt;
-        var tok = typeof jwt === "string" ? jwt : (jwt && (jwt.access || jwt.token || jwt.access_token));
-        if(!res.ok || !tok){ connState("Sign-in failed" + (res.status ? " (" + res.status + ")" : "") + ". Check your email and password, or paste a token instead.", true); return; }
-        state.token = tok; put("assuredToken", tok); $("loginPass").value = ""; $("apiToken").value = "";
-        connState("Signed in. Your token is saved " + (store() === localStorage ? "on this device." : "for this browser tab."));
-      }, function(){ connState("Could not reach the platform from this website (likely CORS). Use the Google Apps Script version.", true); });
-  }
-
-  var wired = false;
-  function wire(){
-    if(wired) return; wired = true;
-    $("apiBase").value = state.base;
-    try { $("remember").checked = localStorage.getItem("assuredRemember") === "1"; } catch(e){}
-    connState(state.token ? "A token is saved." : "No token saved yet.", !state.token);
-    if(!state.token) $("settings").open = true;
-    $("saveConn").addEventListener("click", function(){
-      state.base = $("apiBase").value.trim() || DEFAULT_BASE; put("assuredBase", state.base);
-      var t = $("apiToken").value.trim().replace(/^Bearer\s+/i, "");
-      if(t){ state.token = t; put("assuredToken", t); $("apiToken").value = ""; }
-      connState(state.token ? "Saved." : "Saved the address. Add a token or sign in.", !state.token);
-    });
-    $("signIn").addEventListener("click", function(){ state.base = $("apiBase").value.trim() || DEFAULT_BASE; put("assuredBase", state.base); signIn(); });
-    $("remember").addEventListener("change", function(e){
-      try { if(e.target.checked){ localStorage.setItem("assuredRemember", "1"); } else { localStorage.removeItem("assuredRemember"); } } catch(x){}
-      if(state.token){ drop("assuredToken"); put("assuredToken", state.token); }
-      put("assuredBase", state.base);
-    });
-    $("forget").addEventListener("click", function(){ state.token = ""; drop("assuredToken"); connState("Token removed.", true); });
-  }
+  var backend = {
+    state: function(){ return {signedIn: !!(sess && sess.access), user: sess && sess.user}; },
+    signIn: function(email, pass, code, keep){
+      return post("/api/v1/users/login/", AUTH.body(email, pass, code)).then(function(r){
+        var res = AUTH.readLogin(r.status, r.json, email);
+        if(res.ok){ sess = {access: res.tokens.access, refresh: res.tokens.refresh, user: res.user, keep: !!keep}; writeSession(sess, keep); return {user: res.user}; }
+        if(res.needCode) return res;
+        throw {userMessage: res.error};
+      });
+    },
+    signOut: function(){ writeSession(null); sess = null; },
+    resetPassword: function(email){
+      return post("/api/v1/users/password-reset/", {email: String(email).trim()}).then(function(r){
+        if(r.status >= 200 && r.status < 300) return true;
+        throw {userMessage: (AUTH.serverMessage(r.json) || "The email could not be sent") + " (" + r.status + ")."};
+      });
+    },
+    useSession: function(t, keep){
+      var prev = sess; sess = {access: t.access, refresh: t.refresh || "", keep: !!keep};
+      return httpMany(["/api/v1/users/logged-in-user-details/"]).then(function(rs){
+        var r = rs[0];
+        if(!r || r.status !== 200){ sess = prev; throw {userMessage: "The platform did not accept that sign-in (" + (r ? r.status : "no answer") + "). Click the bookmark on the platform again."}; }
+        var u = (r.json && (r.json.data || r.json)) || {};
+        sess.user = {name: [u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "Signed in", email: u.email || ""};
+        writeSession(sess, keep);
+        return {user: sess.user};
+      }, function(e){ sess = prev; throw e; });
+    }
+  };
+  document.addEventListener("DOMContentLoaded", function(){ AUTH.init(backend); });
 
   function save(filename, bytes){
     var blob = new Blob([bytes], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    var url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
     return "Downloaded " + filename + ".";
   }
-
-  document.addEventListener("DOMContentLoaded", wire);
-  if(document.readyState !== "loading") setTimeout(wire, 0);
-
-  return {label: "Assured API", load: makeRestLoader(httpMany), save: save,
-    emptyHint: "Paste a link like https://platform.withassured.com/superadmin/enrollments/<id>/overview, or just the enrollment ID. Set up your access once under Connection settings."};
+  return {load: makeRestLoader(httpMany), save: save,
+    emptyHint: "Paste a link like https://platform.withassured.com/superadmin/enrollments/<id>/overview, or just the enrollment ID. Paste several links to get bulk data for all of them."};
 })();
 
-/* Page behaviour shared by every build. A build supplies SOURCE = {load(id, progress), save(filename, bytes), label, emptyHint, extras?(container, api)}. */
-(function(){
+/* One page: paste one link to see every field, or several links for bulk data. Search, copy and export from the same place.
+   A build supplies SOURCE = {load(id, progress), save(filename, bytes), emptyHint, extras?(box, api), toSheet?(title, sheets)} */
+var APP = (function(){
   "use strict";
   var $ = function(id){ return document.getElementById(id); };
-  var MODEL = null, loading = false, q = "";
-  var opts = {showSens: false, hideEmpty: false, omitSecrets: false};
-  try { var saved = JSON.parse(localStorage.getItem("enrollExportOpts") || "{}"); ["hideEmpty","omitSecrets"].forEach(function(k){ if(typeof saved[k] === "boolean") opts[k] = saved[k]; }); } catch(e){}
-  function persist(){ try { localStorage.setItem("enrollExportOpts", JSON.stringify({hideEmpty: opts.hideEmpty, omitSecrets: opts.omitSecrets})); } catch(e){} }
+  var S = {model: null, loading: false, q: "", bulk: null, opts: {format: false, showSens: false, hideEmpty: false}};
+  var listeners = [];
+  function store(k, v){ try { if(v === undefined) return JSON.parse(localStorage.getItem(k) || "null"); localStorage.setItem(k, JSON.stringify(v)); } catch(e){ return null; } }
+  var saved = store("enrollExportOpts") || {};
+  ["format", "hideEmpty"].forEach(function(k){ if(typeof saved[k] === "boolean") S.opts[k] = saved[k]; });
 
+  function el(tag, cls, text){ var e = document.createElement(tag); if(cls) e.className = cls; if(text !== undefined && text !== null) e.textContent = text; return e; }
   function setMsg(t, err){ var m = $("msg"); m.textContent = t || ""; m.className = err ? "error" : ""; }
-  function el(tag, cls, text){ var e = document.createElement(tag); if(cls) e.className = cls; if(text !== undefined) e.textContent = text; return e; }
-  var slug = function(n){ return "s-" + n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); };
-
+  function fallbackCopy(t){ try { var ta = el("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); var ok = document.execCommand("copy"); ta.remove(); return ok; } catch(e){ return false; } }
   function copyText(t, label){
     var done = function(){ setMsg("Copied " + (label || "value") + "."); };
-    try {
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(t).then(done, function(){ fallbackCopy(t) ? done() : setMsg("Copy is blocked here. Select the text and copy it yourself.", true); });
-        return;
-      }
-    } catch(e){}
-    fallbackCopy(t) ? done() : setMsg("Copy is blocked here. Select the text and copy it yourself.", true);
+    var fail = function(){ fallbackCopy(t) ? done() : setMsg("Copy is blocked here. Select the text and copy it yourself.", true); };
+    try { if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done, fail); return; } } catch(e){}
+    fail();
   }
-  function fallbackCopy(t){
-    try { var ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); var ok = document.execCommand("copy"); ta.remove(); return ok; } catch(e){ return false; }
-  }
-  function copyBtn(label, text){
+  function copyBtn(label, getText){
     var b = el("button", "copy", "Copy"); b.type = "button"; b.setAttribute("aria-label", "Copy " + label);
-    b.addEventListener("click", function(){ copyText(text, label); });
+    b.addEventListener("click", function(e){ e.stopPropagation(); copyText(typeof getText === "function" ? getText() : getText, label); });
     return b;
   }
-  function hl(node, text){
-    if(!q){ node.textContent = text; return; }
-    var i = text.toLowerCase().indexOf(q);
-    if(i < 0){ node.textContent = text; return; }
-    node.append(text.slice(0, i)); var m = el("mark", "", text.slice(i, i + q.length)); node.append(m, text.slice(i + q.length));
+  function esc(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  function hl(node, text, terms){
+    terms = (terms || []).filter(function(t){ return t.length > 1; });
+    if(!terms.length){ node.textContent = text; return; }
+    var re = new RegExp("(" + terms.map(esc).join("|") + ")", "ig"), last = 0, m;
+    while((m = re.exec(text))){ node.append(text.slice(last, m.index)); node.appendChild(el("mark", "", m[0])); last = m.index + m[0].length; if(!m[0].length) re.lastIndex++; }
+    node.append(text.slice(last));
   }
-  function shown(key, val){ return (EX.SENSITIVE[key] && !opts.showSens) ? EX.mask(key, val) : val; }
-  function pillClass(s){ s = String(s || "").toUpperCase(); if(/COMPLET|APPROV|ACTIVE/.test(s)) return "pill ok"; if(/CANCEL|DENI|REJECT|FAIL/.test(s)) return "pill bad"; return "pill"; }
+  function textOf(row){ return EX.text(row, S.opts); }
+  function shown(row){ var t = textOf(row); return (EX.SENSITIVE[row.key] && !S.opts.showSens) ? EX.mask(row.key, t) : t; }
+  function pill(s){ s = String(s || "").toUpperCase(); return /COMPLET|APPROV|ACTIVE/.test(s) ? "pill ok" : (/CANCEL|DENI|REJECT|FAIL/.test(s) ? "pill bad" : "pill"); }
+  function save(filename, bytes){
+    setMsg("Preparing " + filename + "…");
+    return Promise.resolve().then(function(){ return SOURCE.save(filename, bytes); })
+      .then(function(m){ if(m !== null) setMsg(m || ("Saved " + filename + ".")); })
+      .catch(function(e){ setMsg((e && e.userMessage) || ("The file could not be saved" + (e && e.message ? ": " + e.message : ".")), !(e && e.quiet)); });
+  }
+  var selTemplate = null;
+  function fieldSelect(selected){
+    if(!selTemplate){
+      selTemplate = el("select"); selTemplate.appendChild(new Option("Not matched", ""));
+      var groups = {};
+      EX.fieldList().forEach(function(f){
+        var g = groups[f.section]; if(!g){ g = groups[f.section] = el("optgroup"); g.label = f.section; selTemplate.appendChild(g); }
+        g.appendChild(new Option(EX.fieldLabel(f), f.id));
+      });
+    }
+    var s = selTemplate.cloneNode(true); s.value = selected || ""; return s;
+  }
 
+  /* ---------- recent ---------- */
+  function recent(){ return store("enrollExportRecent") || []; }
+  function remember(m){
+    var list = recent().filter(function(r){ return r.id !== m.id; });
+    list.unshift({id: m.id, name: m.name, sub: [m.hp, m.state].filter(Boolean).join(" · ")});
+    store("enrollExportRecent", list.slice(0, 8));
+  }
+
+  /* ---------- hero ---------- */
   function renderHero(){
     var h = $("hero"); h.replaceChildren();
-    if(loading){
-      ["30%","60%","100%"].forEach(function(w, i){ var d = el("div", "skel"); d.style.width = w; d.style.height = i === 1 ? "30px" : (i ? "48px" : "12px"); h.appendChild(d); });
+    if(S.loading){ ["30%","55%","100%"].forEach(function(w, i){ var d = el("div", "skel"); d.style.width = w; d.style.height = i === 1 ? "30px" : (i ? "56px" : "12px"); h.appendChild(d); }); return; }
+    var m = S.model;
+    if(!m){
+      h.append(el("div", "eyebrow", "Enrollment overview"), el("h1", "", S.bulk ? "Pick an enrollment from the bulk table" : "Paste an enrollment link to begin"), el("p", "sub", SOURCE.emptyHint));
+      var rc = recent();
+      if(rc.length && !S.bulk){
+        var box = el("div", "recent"); box.appendChild(el("div", "eyebrow", "Recent"));
+        rc.forEach(function(r){
+          var b = el("button", "recent-item"); b.type = "button";
+          b.append(el("span", "r-name", r.name || r.id), el("span", "r-sub", r.sub || r.id));
+          b.addEventListener("click", function(){ $("link").value = r.id; load(r.id); });
+          box.appendChild(b);
+        });
+        h.appendChild(box);
+      }
       return;
     }
-    if(!MODEL){
-      h.append(el("div", "eyebrow", "Enrollment application data"), el("h1", "", "Paste an enrollment link to begin"));
-      h.append(el("p", "sub", SOURCE.emptyHint || "Paste a link like https://platform.withassured.com/superadmin/enrollments/<id>/overview, or just the enrollment ID."));
-      var ol = el("ol", "steps");
-      ["Every field uses the platform's own field name, grouped the way the platform groups it.",
-       "Licenses, education, training, work history, malpractice and other repeating records come as their own tables.",
-       "Download Excel gives one sheet of Field and Value rows for ZenPDF autofill, plus one sheet per table."].forEach(function(t){ ol.appendChild(el("li", "", t)); });
-      h.appendChild(ol);
-      return;
-    }
-    var top = el("div", "hero-top"); var l = el("div"); l.style.minWidth = "0";
-    l.append(el("div", "eyebrow", MODEL.requestId), el("h1", "", MODEL.name), el("p", "sub", MODEL.subtitle));
-    top.append(l, el("span", pillClass(MODEL.status), MODEL.statusLabel || "—"));
+    var top = el("div", "hero-top"), l = el("div"); l.style.minWidth = "0";
+    l.append(el("div", "eyebrow", m.requestId), el("h1", "", m.name), el("p", "sub", m.subtitle));
+    top.append(l, el("span", pill(m.status), m.status || "—"));
     h.appendChild(top);
     var k = el("div", "kpis");
-    MODEL.kpis.forEach(function(x){
+    m.kpis.forEach(function(x){
       var c = el("div", "kpi"), v = el("div", "kpi-v");
-      v.append(el("span", "", shown(x[2], x[1])), copyBtn(x[0], x[1]));
-      c.append(el("div", "kpi-l", x[0]), v); k.appendChild(c);
+      v.append(el("span", "", shown(x.row)), copyBtn(x.label, function(){ return textOf(x.row); }));
+      c.append(el("div", "kpi-l", x.label), v); k.appendChild(c);
     });
     if(k.children.length) h.appendChild(k);
+    var ck = el("ul", "checks");
+    m.checks.forEach(function(c){ if(c.level === "ok") return; var li = el("li", "check " + c.level); li.append(el("span", "dot"), el("span", "", c.text)); ck.appendChild(li); });
+    if(ck.children.length) h.appendChild(ck);
   }
 
-  function visibleRows(s){
-    return s.rows.filter(function(r){
-      if(opts.hideEmpty && !r.value) return false;
-      if(!q) return true;
-      return (r.field + " " + r.value + " " + r.sub + " " + r.key).toLowerCase().indexOf(q) >= 0;
-    });
-  }
-  function render(){
-    renderHero();
-    var root = $("sections"), chips = $("chips");
-    root.replaceChildren(); chips.replaceChildren();
-    $("tools").hidden = !MODEL || loading;
-    $("dl").disabled = !MODEL || loading;
-    if(loading){
-      for(var i = 0; i < 4; i++){ var s = el("section", "card"); for(var j = 0; j < 6; j++){ var d = el("div", "skel"); d.style.margin = "16px 0"; d.style.width = (55 + ((i + j) * 13) % 40) + "%"; s.appendChild(d); } root.appendChild(s); }
-      return;
+  /* ---------- sections ---------- */
+  var slug = function(n){ return "s-" + n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); };
+  function renderSections(){
+    var root = $("sections"), chips = $("chips"), picks = $("picks");
+    root.replaceChildren(); chips.replaceChildren(); picks.replaceChildren(); picks.hidden = true;
+    $("tools").hidden = !(S.model || S.bulk); $("dl").disabled = !S.model || S.loading; $("formDrawer").hidden = !S.model;
+    if(S.loading){ for(var i = 0; i < 4; i++){ var s = el("section", "card"); for(var j = 0; j < 6; j++){ var d = el("div", "skel"); d.style.margin = "16px 0"; d.style.width = (55 + ((i + j) * 13) % 40) + "%"; s.appendChild(d); } root.appendChild(s); } return; }
+    var m = S.model; if(!m) return;
+    var terms = MATCH.terms(S.q), hits = null;
+    if(terms.length){
+      var res = MATCH.search(m, S.q); hits = {};
+      res.forEach(function(r){ r.rows.forEach(function(x){ hits[x.id] = 1; }); });
+      if(terms.length > 1 || res[0].rows.length) renderPicks(res);
     }
-    if(!MODEL) return;
     var count = 0;
-    MODEL.sections.forEach(function(s){
-      var rows = visibleRows(s); if(!rows.length) return;
-      count += rows.length;
-      addChip(s.name);
+    m.sections.forEach(function(s){
+      var rows = s.rows.filter(function(x){ return (!S.opts.hideEmpty || textOf(x)) && (!hits || hits[x.id]); });
+      if(!rows.length) return;
+      count += rows.length; chip(s.name);
       var sec = el("section", "card"); sec.id = slug(s.name);
       var h = el("h2"); h.append(el("span", "", s.name), el("small", "", rows.length + (rows.length === 1 ? " field" : " fields")));
       sec.appendChild(h);
-      var dl = el("dl"); dl.style.margin = "0"; var lastSub = null;
-      rows.forEach(function(r){
-        if(r.sub && r.sub !== lastSub){ dl.appendChild(el("h3", "", r.sub)); lastSub = r.sub; }
-        var row = el("div", "row"), dt = el("dt"), dd = el("dd");
-        hl(dt, r.field); dt.title = r.key;
-        var val = shown(r.key, r.value);
-        dd.className = !r.value ? "empty" : (val !== r.value ? "masked" : "");
-        if(r.value) hl(dd, val); else dd.textContent = "—";
-        row.append(dt, dd, r.value ? copyBtn(r.field, r.value) : el("span"));
+      var dl = el("dl"), lastSub = null;
+      rows.forEach(function(x){
+        if(x.sub && x.sub !== lastSub){ dl.appendChild(el("h3", "", x.sub)); lastSub = x.sub; }
+        var row = el("div", "row"), dt = el("dt"), dd = el("dd"), t = textOf(x), sv = shown(x);
+        hl(dt, x.field, terms); dt.title = x.key;
+        dd.className = !t ? "empty" : (sv !== t ? "masked" : "");
+        if(t) hl(dd, sv, terms); else dd.textContent = "—";
+        row.append(dt, dd, t ? copyBtn(x.field, function(){ return textOf(x); }) : el("span"));
         dl.appendChild(row);
       });
       sec.appendChild(dl); root.appendChild(sec);
     });
-    MODEL.tables.forEach(function(t){
-      var rows = t.rows.filter(function(r){ return !q || r.join(" ").toLowerCase().indexOf(q) >= 0 || t.name.toLowerCase().indexOf(q) >= 0; });
+    m.tables.forEach(function(t){
+      var rows = t.rows.map(function(r){ return r.map(function(v, i){ return S.opts.format ? EX.pretty(t.keys[i], v) : EX.raw(v); }); })
+        .filter(function(r){ return !terms.length || terms.some(function(q){ return (r.join(" ") + " " + t.name).toLowerCase().indexOf(q.toLowerCase()) >= 0; }); });
       if(!rows.length) return;
-      count += rows.length;
-      addChip(t.name);
+      count += rows.length; chip(t.name);
       var sec = el("section", "card wide"); sec.id = slug(t.name);
       var h = el("h2"); h.append(el("span", "", t.name), el("small", "", rows.length + (rows.length === 1 ? " record" : " records")));
+      var ca = el("button", "copy", "Copy table"); ca.type = "button"; ca.style.opacity = "1";
+      ca.addEventListener("click", function(){ copyText([t.columns].concat(rows).map(function(r){ return r.join("\t"); }).join("\n"), t.name + " table"); });
+      h.lastChild.before(ca);
       var wrap = el("div", "tbl"), tb = el("table"), thead = el("thead"), tr = el("tr");
       t.columns.forEach(function(c){ tr.appendChild(el("th", "", c)); }); thead.appendChild(tr); tb.appendChild(thead);
       var body = el("tbody");
-      rows.forEach(function(r){ var x = el("tr"); r.forEach(function(v){ var td = el("td"); hl(td, v || ""); x.appendChild(td); }); body.appendChild(x); });
+      rows.forEach(function(r){ var x = el("tr"); r.forEach(function(v){ var td = el("td"); hl(td, v, terms); x.appendChild(td); }); body.appendChild(x); });
       tb.appendChild(body); wrap.appendChild(tb); sec.append(h, wrap); root.appendChild(sec);
     });
-    if(!count){ var n = el("div", "none", q ? "No fields match \"" + q + "\". Clear the filter to see everything." : "Every field is empty. Turn off Hide empty fields to see them."); n.style.gridColumn = "1/-1"; root.appendChild(n); }
+    if(!count){ var n = el("div", "none", terms.length ? "Nothing matches " + terms.join(", ") + ". Try other words, such as dob, tin, license or practice zip." : "Every field is empty. Turn off Hide empty fields to see them."); n.style.gridColumn = "1/-1"; root.appendChild(n); }
   }
-  function addChip(name){
+  function chip(name){
     var a = el("a", "chip", name.replace(/^Additional Practice Location (\d+):.*/, "Location $1")); a.href = "#" + slug(name);
     a.addEventListener("click", function(ev){ ev.preventDefault(); var t = document.getElementById(slug(name)); if(t) t.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth", block: "start"}); });
     $("chips").appendChild(a);
   }
+  function renderPicks(res){
+    var box = $("picks"); box.hidden = false;
+    var head = el("div", "out-head"), actions = el("div", "row-actions");
+    head.append(el("h2", "", "Search results"), actions);
+    var firstRows = res.map(function(r){ return r.rows[0] || null; });
+    var cv = el("button", "quiet", "Copy values"); cv.type = "button";
+    cv.addEventListener("click", function(){ copyText(firstRows.map(function(x){ return x ? textOf(x) : ""; }).join("\n"), "values in search order"); });
+    var ct = el("button", "quiet", "Copy with labels"); ct.type = "button";
+    ct.addEventListener("click", function(){ copyText(res.map(function(r, i){ var x = firstRows[i]; return [x ? x.field : r.term, x ? textOf(x) : ""].join("\t"); }).join("\n"), "search results"); });
+    actions.append(cv, ct);
+    box.appendChild(head);
+    var wrap = el("div", "tbl"), tb = el("table", "picks-table"), body = el("tbody");
+    res.forEach(function(r){
+      var x = r.rows[0], tr = el("tr", x ? "" : "miss");
+      var tdT = el("td", "term", r.term), tdF = el("td"), tdV = el("td", "val"), tdC = el("td");
+      if(x){ tdF.append(el("span", "f-name", x.field), el("span", "f-where", [x.section, x.sub].filter(Boolean).join(" › "))); var t = textOf(x); tdV.textContent = t ? shown(x) : "—"; if(t) tdC.appendChild(copyBtn(x.field, function(){ return textOf(x); })); }
+      else { tdF.textContent = "No match"; tdV.textContent = "—"; }
+      tr.append(tdT, tdF, tdV, tdC); body.appendChild(tr);
+    });
+    tb.appendChild(body); wrap.appendChild(tb); box.appendChild(wrap);
+  }
 
+  /* ---------- bulk ---------- */
+  var BULK_DEFAULT = ["enrollment.request_id","provider.full_name","enrollment.health_plan_name","enrollment.state","enrollment.status","provider.individual_npi","provider.caqh_id","professionalid[license].number","professionalid[license].expiration_date","taxentity.legal_name","taxentity.tax_id","taxentity.npi","primary_practicelocation.mailing_street_address_1","primary_practicelocation.mailing_city","primary_practicelocation.mailing_zip_code","activeenrollment.effective_date"];
+  function bulkCols(){
+    var terms = MATCH.terms(S.q);
+    if(!terms.length) return BULK_DEFAULT.map(function(id){ return MATCH.byId(id); }).filter(Boolean);
+    var out = [MATCH.byId("enrollment.request_id")];
+    terms.forEach(function(t){
+      var m = MATCH.match(t, null), f = m && MATCH.byId(m.id);
+      if(!f){ var n = MATCH.norm(t); f = EX.fieldList().filter(function(x){ return MATCH.norm(x.field).indexOf(n) >= 0; })[0]; }
+      if(f && out.indexOf(f) < 0) out.push(f);
+    });
+    return out;
+  }
+  /* short column name, with its group added when the name alone is ambiguous (e.g. "State License Expiration Date") */
+  var nameCount = null;
+  function colName(f){
+    if(!nameCount){ nameCount = {}; EX.fieldList().forEach(function(x){ nameCount[x.field] = (nameCount[x.field] || 0) + 1; }); }
+    return nameCount[f.field] > 1 ? ((/^(State License|DEA|CDS|Medicare|Medicaid|Home Address|Mailing Address|Billing Address|Correspondence Address)$/.test(f.sub) ? f.sub : f.section) + " " + f.field) : f.field;
+  }
+  function bulkValue(m, f, forScreen){ var x = m.index[f.id]; if(!x) return ""; return forScreen ? shown(x) : textOf(x); }
+  function renderBulk(){
+    var B = S.bulk, box = $("bulk"); box.hidden = !B; if(!B) return;
+    var cols = bulkCols(), t = $("bulkTable"); t.replaceChildren();
+    var done = B.items.filter(function(x){ return x.model || x.error; }).length;
+    $("bulkTitle").textContent = "Bulk data · " + B.items.length + " enrollments" + (done < B.items.length ? " (loading " + done + "/" + B.items.length + ")" : "");
+    var thead = el("thead"), tr = el("tr"); tr.appendChild(el("th", "", "#"));
+    cols.forEach(function(f){ var th = el("th", "", colName(f)); th.title = EX.fieldLabel(f); tr.appendChild(th); }); thead.appendChild(tr); t.appendChild(thead);
+    var body = el("tbody");
+    B.items.forEach(function(it, i){
+      var r = el("tr", it.model ? "click" : (it.error ? "unmatched" : "pending"));
+      r.appendChild(el("td", "num", String(i + 1)));
+      if(it.model){
+        cols.forEach(function(f){ r.appendChild(el("td", "", bulkValue(it.model, f, true))); });
+        if(S.model === it.model) r.classList.add("current");
+        r.tabIndex = 0;
+        var open = function(){ S.model = it.model; render(); var s = $("hero"); if(s) s.scrollIntoView({behavior: "smooth", block: "start"}); };
+        r.addEventListener("click", open); r.addEventListener("keydown", function(e){ if(e.key === "Enter") open(); });
+      } else { var td = el("td", "note", it.error ? it.id + ": " + it.error : it.id + " · loading…"); td.colSpan = cols.length; r.appendChild(td); }
+      body.appendChild(r);
+    });
+    t.appendChild(body);
+  }
+  function bulkSheets(){
+    var B = S.bulk, cols = bulkCols(), ok = B.items.filter(function(x){ return x.model; });
+    var chosen = [cols.map(colName)].concat(ok.map(function(it){ return cols.map(function(f){ return bulkValue(it.model, f, false); }); }));
+    var all = EX.fieldList();
+    var wide = [all.map(function(f){ return EX.fieldLabel(f); })].concat(ok.map(function(it){ return all.map(function(f){ return bulkValue(it.model, f, false); }); }));
+    var sheets = [{name: "Bulk", rows: chosen}, {name: "All Fields", rows: wide}];
+    var bad = B.items.filter(function(x){ return x.error; });
+    if(bad.length) sheets.push({name: "Not Loaded", rows: [["Enrollment ID", "Reason"]].concat(bad.map(function(x){ return [x.id, x.error]; }))});
+    return sheets;
+  }
+  function loadBulk(ids){
+    S.model = null; S.bulk = {items: ids.map(function(id){ return {id: id}; })}; render();
+    var B = S.bulk, next = 0;
+    setMsg("Loading " + ids.length + " enrollments…");
+    function worker(){
+      if(next >= B.items.length || S.bulk !== B) return Promise.resolve();
+      var it = B.items[next++];
+      return fetchModel(it.id).then(function(m){ it.model = m; }, function(e){ it.error = (e && e.userMessage) || (e && e.message) || "could not load"; })
+        .then(function(){ if(S.bulk === B) renderBulk(); return worker(); });
+    }
+    Promise.all([worker(), worker(), worker()]).then(function(){
+      if(S.bulk !== B) return;
+      var bad = B.items.filter(function(x){ return x.error; }).length;
+      setMsg("Loaded " + (B.items.length - bad) + " of " + B.items.length + " enrollments." + (bad ? " " + bad + " could not be loaded; they are marked in the table." : " Click a row to see all its fields."), bad > 0);
+      renderBulk();
+    });
+  }
+
+  function render(){ renderHero(); renderSections(); renderBulk(); listeners.forEach(function(f){ try { f(S.model); } catch(e){ console.error(e); } }); }
+
+  /* ---------- loading ---------- */
+  var cache = {};
+  function fetchModel(id){
+    if(cache[id]) return cache[id];
+    return (cache[id] = Promise.resolve().then(function(){ return SOURCE.load(id, function(){}); }).then(function(res){ var m = EX.build(res.raw, res.catalog); m.partial = (res.partial || []).concat(m.warnings || []); return m; }).catch(function(e){ delete cache[id]; throw e; }));
+  }
   function load(id){
-    loading = true; MODEL = null; $("load").disabled = true; setMsg("Loading enrollment…"); render();
+    S.loading = true; S.model = null; S.bulk = null; $("load").disabled = true; setMsg("Loading enrollment…"); render();
+    delete cache[id];
     return Promise.resolve().then(function(){ return SOURCE.load(id, setMsg); }).then(function(res){
-      MODEL = EX.build(res.raw, res.catalog);
-      var missing = (res.partial || []).concat(MODEL.warnings || []);
-      loading = false; render();
-      setMsg(missing.length ? "Loaded " + MODEL.requestId + ". Not found or not readable: " + missing.join(", ") + "." : "Loaded " + MODEL.requestId + ". " + countFields() + " fields filled.", missing.length > 0);
+      S.model = EX.build(res.raw, res.catalog); cache[id] = Promise.resolve(S.model);
+      S.loading = false; remember(S.model); render();
+      var missing = (res.partial || []).concat(S.model.warnings || []);
+      var filled = 0; S.model.sections.forEach(function(s){ s.rows.forEach(function(x){ if(EX.raw(x.v)) filled++; }); });
+      setMsg(missing.length ? "Loaded " + S.model.requestId + ". Not found or not readable: " + missing.join(", ") + "." : "Loaded " + S.model.requestId + ". " + filled + " fields have values.", missing.length > 0);
     }).catch(function(e){
-      loading = false; MODEL = null; render();
+      S.loading = false; S.model = null; render();
       setMsg((e && e.userMessage) || ("Could not load the enrollment" + (e && e.message ? ": " + e.message : ".")), true);
     }).then(function(){ $("load").disabled = false; });
   }
-  function countFields(){ var n = 0; MODEL.sections.forEach(function(s){ s.rows.forEach(function(r){ if(r.value) n++; }); }); return n; }
 
-  $("lookup").addEventListener("submit", function(ev){
-    ev.preventDefault();
-    var id = EX.idFrom($("link").value);
-    if(!id){ setMsg("Paste an enrollment link or ID. It should contain an ID like 8e994868-fb86-4a73-8871-cd40d993c4ce.", true); return; }
-    load(id);
-  });
-  $("filter").addEventListener("input", function(e){ q = e.target.value.trim().toLowerCase(); render(); });
-  [["showSens"],["hideEmpty"],["omitSecrets"]].forEach(function(k){
-    var c = $(k[0]); c.checked = opts[k[0]];
-    c.addEventListener("change", function(){ opts[k[0]] = c.checked; persist(); render(); });
-  });
-  $("copyAll").addEventListener("click", function(){
-    if(!MODEL) return;
-    var lines = ["Field\tValue\tSection\tGroup"];
-    MODEL.sections.forEach(function(s){ s.rows.forEach(function(r){ if(opts.hideEmpty && !r.value) return; lines.push([r.field, r.value, s.name, r.sub].join("\t")); }); });
-    copyText(lines.join("\n"), "all fields (paste into a spreadsheet)");
-  });
-  $("dl").addEventListener("click", function(){
-    if(!MODEL) return;
-    var btn = $("dl"); btn.disabled = true; setMsg("Building the Excel file…");
-    var bytes;
-    try { bytes = EX.workbook(MODEL, opts); } catch(e){ setMsg(e.message, true); btn.disabled = false; return; }
-    Promise.resolve().then(function(){ return SOURCE.save(MODEL.filename, bytes); })
-      .then(function(m){ setMsg(m || ("Saved " + MODEL.filename + ".")); })
-      .catch(function(e){ setMsg((e && e.userMessage) || ("The file could not be saved" + (e && e.message ? ": " + e.message : ".")), !(e && e.quiet)); })
-      .then(function(){ btn.disabled = false; });
-  });
-  if(SOURCE.extras) SOURCE.extras($("extras"), {model: function(){ return MODEL; }, opts: function(){ return opts; }, setMsg: setMsg});
+  function init(){
+    $("lookup").addEventListener("submit", function(ev){
+      ev.preventDefault();
+      var ids = EX.idsFrom($("link").value);
+      if(!ids.length){ setMsg("Paste an enrollment link or ID. It contains an ID like 8e994868-fb86-4a73-8871-cd40d993c4ce.", true); return; }
+      if(ids.length > 1) loadBulk(ids); else load(ids[0]);
+    });
+    var t = null;
+    $("filter").addEventListener("input", function(e){ clearTimeout(t); var v = e.target.value; t = setTimeout(function(){ S.q = v; renderSections(); renderBulk(); }, 120); });
+    [["optFormat", "format"], ["optSens", "showSens"], ["optEmpty", "hideEmpty"]].forEach(function(p){
+      var c = $(p[0]); c.checked = S.opts[p[1]];
+      c.addEventListener("change", function(){ S.opts[p[1]] = c.checked; store("enrollExportOpts", {format: S.opts.format, hideEmpty: S.opts.hideEmpty}); render(); });
+    });
+    $("copyAll").addEventListener("click", function(){
+      if(S.model){
+        var lines = ["Field\tValue\tSection\tGroup"];
+        S.model.sections.forEach(function(s){ s.rows.forEach(function(x){ var v = textOf(x); if(S.opts.hideEmpty && !v) return; lines.push([x.field, v, s.name, x.sub].join("\t")); }); });
+        copyText(lines.join("\n"), "all fields (paste into a spreadsheet)");
+      } else if(S.bulk){ copyText(bulkSheets()[0].rows.map(function(r){ return r.join("\t"); }).join("\n"), "bulk rows"); }
+    });
+    $("openForm").addEventListener("click", function(){ var d = $("formDrawer"); if(!S.model){ setMsg("Open one enrollment first, then fill a form with its data.", true); return; } d.open = true; d.scrollIntoView({behavior: "smooth", block: "start"}); });
+    $("dl").addEventListener("click", function(){
+      if(!S.model) return;
+      var b; try { b = EX.workbook(S.model, S.opts); } catch(e){ setMsg(e.message, true); return; }
+      save(S.model.filename, b);
+    });
+    $("bulkCopy").addEventListener("click", function(){ if(S.bulk) copyText(bulkSheets()[0].rows.map(function(r){ return r.join("\t"); }).join("\n"), "bulk rows (paste into a spreadsheet)"); });
+    $("bulkDl").addEventListener("click", function(){ if(!S.bulk) return; try { save("Enrollments - bulk " + new Date().toISOString().slice(0, 10) + ".xlsx", EX.simpleBook(bulkSheets())); } catch(e){ setMsg(e.message, true); } });
+    if(SOURCE.toSheet){
+      var b = el("button", "quiet", "Open as Google Sheet"); b.type = "button";
+      b.addEventListener("click", function(){ if(S.bulk) SOURCE.toSheet("Enrollments - bulk", bulkSheets()); });
+      $("bulkExtras").appendChild(b);
+    }
+    if(SOURCE.extras) SOURCE.extras($("extras"), {model: function(){ return S.model; }, opts: function(){ return S.opts; }, setMsg: setMsg});
+    render();
+    var start = EX.idsFrom(location.hash + " " + location.search);
+    if(start.length){ $("link").value = start.join("\n"); start.length > 1 ? loadBulk(start) : load(start[0]); }
+  }
 
-  render();
-  /* Deep link: #<enrollment id> or ?id=<enrollment id> loads straight away */
-  var start = EX.idFrom(location.hash) || EX.idFrom(location.search);
-  if(start){ $("link").value = start; load(start); }
-  window.addEventListener("hashchange", function(){ var id = EX.idFrom(location.hash); if(id && (!MODEL || MODEL.id !== id)){ $("link").value = id; load(id); } });
+  return {init: init, $: $, el: el, setMsg: setMsg, copyText: copyText, copyBtn: copyBtn, save: save, fieldSelect: fieldSelect,
+    model: function(){ return S.model; }, opts: function(){ return S.opts; }, textOf: textOf, shown: shown, on: function(f){ listeners.push(f); }};
 })();
+
+/* Form fill: read a payer form (fillable PDF, scanned PDF, image or typed labels) and line its fields up with platform values. */
+var FORMFILL = (function(){
+  "use strict";
+  var $ = APP.$, el = APP.el;
+  var items = [], title = "";
+
+  function state(t, err){ var s = $("ocrState"); s.textContent = t || ""; s.className = "note" + (err ? " error" : ""); }
+
+  function valueFor(it){
+    var m = APP.model(); if(!m || !it.id) return {text: "", shown: ""};
+    var x = m.index[it.id]; if(!x) return {text: "", shown: ""};
+    return {text: APP.textOf(x), shown: APP.shown(x)};
+  }
+  function render(){
+    var out = $("formOut"), body = $("formTable").tBodies[0];
+    out.hidden = !items.length; body.replaceChildren();
+    if(!items.length) return;
+    var m = APP.model(), hide = $("hideUnmatched").checked, n = 0, matched = 0, fields = 0;
+    $("formTitle").textContent = (title || "Form fields") + (m ? "" : " (load an enrollment to see values)");
+    items.forEach(function(it, idx){
+      if(it.heading !== undefined && !it.label){
+        if(hide) return;
+        var trh = el("tr", "head-row"); var td = el("td", "", it.heading); td.colSpan = 5; trh.appendChild(td); body.appendChild(trh); return;
+      }
+      fields++; if(it.id) matched++;
+      if(hide && !it.id) return;
+      n++;
+      var tr = el("tr", it.id ? "" : "unmatched");
+      var tdL = el("td", "lbl"); tdL.appendChild(el("span", "", it.label));
+      if(it.pdfField && it.pdfField !== it.label) tdL.appendChild(el("span", "f-where", "PDF field: " + it.pdfField));
+      else if(it.heading) tdL.appendChild(el("span", "f-where", it.heading));
+      var sel = APP.fieldSelect(it.id); sel.setAttribute("aria-label", "Platform field for " + it.label);
+      sel.addEventListener("change", function(){ it.id = sel.value || null; it.how = "you"; render(); });
+      var tdS = el("td", "sel"); tdS.appendChild(sel);
+      if(it.how && it.id) tdS.appendChild(el("span", "how how-" + it.how, {exact: "exact name", phrase: "known wording", address: "address context", context: "heading context", name: "similar name", claude: "matched by Claude", you: "set by you"}[it.how] || ""));
+      var v = valueFor(it), tdV = el("td", "val", v.text ? v.shown : (it.id ? "Empty on the platform" : "—"));
+      if(!v.text) tdV.classList.add("empty");
+      var tdC = el("td"); if(v.text) tdC.appendChild(APP.copyBtn(it.label, function(){ return valueFor(it).text; }));
+      tr.append(el("td", "num", String(idx + 1)), tdL, tdS, tdV, tdC);
+      body.appendChild(tr);
+    });
+    state(fields + " fields found, " + matched + " matched to platform data." + (fields - matched ? " Pick a field for the rest from the list." : ""));
+  }
+
+  /* Tidy what a form reader returned:
+     - text that is already a platform value (for example a location name typed on a filled form) is data, not a label, so it is dropped;
+     - a clear local match on address or exact wording wins over a guess, so "Street Address 1" never lands on a name field. */
+  function clean(list){
+    var m = APP.model(), vals = {};
+    if(m) m.sections.forEach(function(s){ s.rows.forEach(function(x){ var v = EX.raw(x.v).trim().toLowerCase(); if(v.length > 3) vals[v] = 1; }); });
+    return list.filter(function(it){
+      if(!it.label) return true;
+      if(vals[it.label.trim().toLowerCase()]) return false;
+      var local = MATCH.match(it.label, it.heading);
+      if(local && it.id !== local.id && (local.how === "address" || local.how === "exact")){ it.id = local.id; it.how = local.how; }
+      if(it.id && /\.name$/.test(it.id) && /\b(street|address|line 1|line 2|suite|city|zip|postal)\b/i.test(it.label) && local){ it.id = local.id; it.how = local.how; }
+      return true;
+    });
+  }
+  function setItems(list, t){ items = clean(list); title = t; render(); $("formOut").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth", block: "start"}); }
+
+  function readFiles(files){
+    if(!files || !files.length) return;
+    var names = Array.prototype.map.call(files, function(f){ return f.name || "pasted image"; }).join(", ");
+    state("Reading " + names + "…");
+    OCR.read(files, state).then(function(list){
+      if(!list.filter(function(x){ return x.label; }).length){ state("No form fields were found in " + names + ". Try a clearer scan, or type the labels.", true); return; }
+      setItems(list, names);
+    }, function(e){ state((e && e.userMessage) || (e && e.message) || "Could not read the file.", true); });
+  }
+
+  function typed(){
+    var heading = "", list = [];
+    $("labelsIn").value.split(/\n/).forEach(function(line){
+      var t = line.trim(); if(!t) return;
+      if(/:$/.test(t)){ heading = t.replace(/:$/, ""); list.push({heading: heading}); return; }
+      list.push({label: t, heading: heading});
+    });
+    if(!list.length){ state("Type at least one label.", true); return; }
+    list.forEach(function(x){ if(x.label){ var m = MATCH.match(x.label, x.heading); if(m){ x.id = m.id; x.how = m.how; } } });
+    setItems(list, "Typed labels");
+    if(OCR_ENGINE.mapLabels){
+      var need = list.filter(function(x){ return x.label && !x.id; });
+      if(need.length){
+        state("Asking Claude about " + need.length + " unmatched label" + (need.length === 1 ? "" : "s") + "…");
+        OCR_ENGINE.mapLabels(need).then(function(ids){ need.forEach(function(x, i){ if(ids[i] && MATCH.byId(ids[i])){ x.id = ids[i]; x.how = "claude"; } }); render(); }, function(){ render(); });
+      }
+    }
+  }
+
+  function rowsForExport(){
+    var rows = [["#", "Form Label", "Value", "Platform Field", "Section", "Platform Key", "PDF Field Name", "Heading"]], m = APP.model(), opts = APP.opts();
+    items.forEach(function(it, i){
+      if(!it.label) return;
+      var f = it.id ? MATCH.byId(it.id) : null, x = m && it.id ? m.index[it.id] : null, v = x ? EX.text(x, opts) : "";
+      if(opts.maskSecrets && x && EX.SECRET[x.key] && v) v = EX.mask(x.key, v);
+      rows.push([String(i + 1), it.label, v, f ? f.field : "", f ? [f.section, f.sub].filter(Boolean).join(" › ") : "", f ? f.key : "", it.pdfField || "", it.heading || ""]);
+    });
+    return rows;
+  }
+
+  function init(){
+    $("ocrName").textContent = OCR_ENGINE.name;
+    $("formFile").addEventListener("change", function(e){ readFiles(e.target.files); e.target.value = ""; });
+    var drop = $("drop");
+    ["dragenter", "dragover"].forEach(function(t){ drop.addEventListener(t, function(e){ e.preventDefault(); drop.classList.add("over"); }); });
+    ["dragleave", "drop"].forEach(function(t){ drop.addEventListener(t, function(e){ e.preventDefault(); drop.classList.remove("over"); }); });
+    drop.addEventListener("drop", function(e){ readFiles(e.dataTransfer && e.dataTransfer.files); });
+    document.addEventListener("paste", function(e){
+      if(!$("formDrawer").open) return;
+      var files = Array.prototype.filter.call((e.clipboardData && e.clipboardData.files) || [], function(f){ return /^image\//.test(f.type); });
+      if(files.length){ e.preventDefault(); readFiles(files); }
+    });
+    $("matchLabels").addEventListener("click", typed);
+    $("hideUnmatched").addEventListener("change", render);
+    $("copyForm").addEventListener("click", function(){
+      var lines = []; items.forEach(function(it){ if(it.label && it.id){ lines.push(it.label + "\t" + valueFor(it).text); } });
+      APP.copyText(lines.join("\n"), "form values (label and value per line)");
+    });
+    $("dlForm").addEventListener("click", function(){
+      var m = APP.model();
+      var name = "Form Fill - " + (m ? m.name + " - " : "") + (title || "Form").replace(/\.[a-z0-9]+$/i, "").slice(0, 60) + ".xlsx";
+      try { APP.save(name.replace(/[\\\/:*?"<>|]+/g, " "), EX.simpleBook([{name: "Form Fill", rows: rowsForExport()}])); } catch(e){ APP.setMsg(e.message, true); }
+    });
+    if(SOURCE.toSheet){
+      var b = el("button", "quiet", "Open as Google Sheet"); b.type = "button";
+      b.addEventListener("click", function(){ SOURCE.toSheet("Form Fill - " + (title || "Form"), [{name: "Form Fill", rows: rowsForExport()}]); });
+      $("formExtras").appendChild(b);
+    }
+    APP.on(function(){ if(items.length) render(); });
+  }
+  return {init: init};
+})();
+
+FORMFILL.init(); APP.init();
 
 </script>
 </body></html>
